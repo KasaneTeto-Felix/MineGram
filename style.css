@@ -1,448 +1,10 @@
-/* style.css */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-
+/* style.css - Clean Instagram Style */
 :root {
-    --bg-main: #121212;         /* Abu-abu sangat gelap ala Discord/Netherite */
-    --bg-panel: #1e1e1e;        /* Panel box tempat postingan */
-    --mc-green: #5c8e32;        /* Hijau rumput Minecraft */
-    --mc-green-hover: #4d7528;
-    --text-color: #f5f5f5;
-    --border-color: #333333;
-}
-
-*, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
-}
-
-body {
-    background-color: var(--bg-main);
-    color: var(--text-color);
-    padding-bottom: 50px;
-}
-
-.container {
-    max-width: 650px;
-    margin: 20px auto;
-    padding: 0 15px;
-}
-
-/* Navbar Atas */
-.navbar {
-    background-color: var(--bg-panel);
-    border-bottom: 3px solid var(--border-color);
-    padding: 15px 0;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-.nav-container {
-    max-width: 650px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 15px;
-}
-.logo {
-    font-size: 1.4rem;
-    font-weight: 700;
-}
-
-/* Tombol Gaya Minecraft Kotak (Efek 3D) */
-.mc-button {
-    background-color: var(--mc-green);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 4px solid #3a5920; /* Efek shadow tebal bawah kotak */
-    transition: all 0.1s ease;
-}
-.mc-button:active {
-    border-bottom-width: 0px;
-    margin-top: 4px;
-}
-.mc-button:hover {
-    background-color: var(--mc-green-hover);
-}
-
-.mc-button-secondary {
-    background-color: #444;
-    color: #ccc;
-    padding: 8px 15px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-}
-.mc-button-secondary:hover {
-    background-color: #555;
-    color: #fff;
-}
-
-/* Box Panel Utama */
-.mc-panel {
-    background-color: var(--bg-panel);
-    border: 2px solid var(--border-color);
-    padding: 20px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-}
-
-/* Input Textarea */
-textarea {
-    width: 100%;
-    background-color: #151515;
-    border: 1px solid var(--border-color);
-    color: white;
-    padding: 12px;
-    border-radius: 4px;
-    margin-top: 10px;
-    resize: none;
-    outline: none;
-}
-textarea:focus {
-    border-color: var(--mc-green);
-}
-
-.post-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 12px;
-}
-#file-name-preview {
-    font-size: 0.85rem;
-    color: #888;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Desain Feed Card Postingan */
-.post-card {
-    background-color: var(--bg-panel);
-    border: 2px solid var(--border-color);
-    padding: 20px;
-    border-radius: 4px;
-    margin-bottom: 15px;
-}
-.post-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-}
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 4px; /* Kotak ala kepala Minecraft */
-    margin-right: 12px;
-    border: 2px solid #555;
-    background-color: #333;
-    object-fit: cover;
-}
-.user-info h4 {
-    font-size: 1rem;
-    font-weight: 600;
-}
-.user-info span {
-    font-size: 0.75rem;
-    color: #888;
-}
-.post-content {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    margin-bottom: 12px;
-    word-break: break-word;
-}
-.post-image-render {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-    margin-bottom: 12px;
-}
-
-/* Tombol Interaksi Bawah */
-.post-footer {
-    display: flex;
-    gap: 15px;
-    border-top: 1px solid #2a2a2a;
-    padding-top: 10px;
-}
-.action-btn {
-    background: none;
-    border: none;
-    color: #aaa;
-    cursor: pointer;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    transition: color 0.2s;
-}
-.action-btn:hover {
-    color: white;
-}
-
-.loading {
-    text-align: center;
-    color: #888;
-    padding: 40px;
-  }
-
-/* ========================================== */
-/* STYLES UNTUK CUSTOM MODAL AUTH             */
-/* ========================================== */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.75); /* Gelap transparan */
-    backdrop-filter: blur(4px);            /* Efek blur aesthetic */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    width: 100%;
-    max-width: 400px;
-    animation: scaleUp 0.2s ease-out;
-}
-
-@keyframes scaleUp {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-}
-
-.close-x {
-    background: none;
-    border: none;
-    color: #888;
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-.close-x:hover { color: white; }
-
-.form-group {
-    margin-bottom: 15px;
-}
-.form-group label {
-    display: block;
-    font-size: 0.85rem;
-    color: #aaa;
-    margin-bottom: 5px;
-}
-.form-group input {
-    width: 100%;
-    background-color: #151515;
-    border: 1px solid var(--border-color);
-    color: white;
-    padding: 10px;
-    border-radius: 4px;
-    outline: none;
-}
-.form-group input:focus {
-    border-color: var(--mc-green);
-}
-
-.modal-footer-toggle {
-    text-align: center;
-    margin-top: 15px;
-    font-size: 0.85rem;
-}
-.modal-footer-toggle a {
-    color: var(--mc-green);
-    text-decoration: none;
-    font-weight: 600;
-}
-.modal-footer-toggle a:hover {
-    text-decoration: underline;
-}
-
-/* ========================================== */
-/* STYLES FOR BOTTOM NAVIGATION BAR           */
-/* ========================================== */
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: var(--bg-panel);
-    border-top: 2px solid var(--border-color);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 10px 0;
-    z-index: 999;
-}
-
-.nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #aaa;
-    text-decoration: none;
-    font-size: 0.8rem;
-    transition: color 0.2s;
-    cursor: pointer;
-}
-
-.nav-icon {
-    font-size: 1.3rem;
-    margin-bottom: 2px;
-}
-
-.nav-item:hover, .nav-item.active {
-    color: var(--mc-green);
-}
-
-/* Jaga agar konten utama tidak tertutup bottom nav di mobile */
-body {
-    padding-bottom: 80px; 
-}
-
-/* Sembunyikan bottom nav di desktop agar tetap fokus ke feed center */
-@media (min-width: 768px) {
-    .bottom-nav {
-        /* Opsional: Lu bisa hapus display none kalau mau di desktop tetep ada */
-    }
-}
-
-/* Update Feed Card Style */
-.post-card {
-    background-color: var(--bg-panel);
-    border: none; /* Hilangin border biar clean */
-    padding: 0;
-    margin-bottom: 30px;
-    border-bottom: 1px solid #2a2a2a;
-    padding-bottom: 20px;
-}
-
-.post-header {
-    padding: 10px 15px;
-    display: flex;
-    align-items: center;
-}
-
-.post-image-render {
-    width: 100%;
-    aspect-ratio: 1 / 1; /* Ala Instagram Square */
-    object-fit: cover;
-    border-radius: 0;
-    border: none;
-    margin: 10px 0;
-}
-
-.post-footer {
-    padding: 0 15px;
-    border-top: none;
-    gap: 20px;
-}
-
-/* Tombol Like ala IG */
-.action-btn {
-    font-size: 1.5rem; /* Icon lebih gede */
-}
-
-/* --- UI Minimalis & Sleek --- */
-
-/* Feed Card lebih rapi */
-.post-card {
-    background-color: #1a1a1a;
-    border-radius: 12px;
-    margin: 15px auto;
-    max-width: 500px; /* Biar gak terlalu lebar di desktop */
-    overflow: hidden;
-}
-
-/* Header User */
-.post-header {
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.avatar {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-/* Post Image agar proporsional */
-.post-image-render {
-    width: 100%;
-    display: block;
-    background: #000;
-}
-
-/* --- Tombol Like (Lebih kecil & Manis) --- */
-.post-footer {
-    padding: 10px 15px;
-    display: flex;
-    align-items: center;
-}
-
-.action-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 0.9rem; /* Dikecilin biar gak dominan */
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    border-radius: 20px;
-    transition: background 0.2s;
-}
-
-.action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.action-btn.liked {
-    color: #ff4757;
-}
-
-/* --- UI Modal biar gak kaku --- */
-.mc-panel {
-    background-color: #222;
-    border: 1px solid #333;
-    border-radius: 15px;
-    padding: 20px;
-    width: 90%;
-    max-width: 400px;
-}
-
-/* --- ROOT & GLOBAL MODERN --- */
-:root {
-    --bg-dark: #000000;         /* Hitam pekat ala Instagram/Threads */
-    --bg-card: #121212;         /* Abu sangat gelap */
+    --bg-dark: #000000;
+    --bg-card: #121212;
     --text-main: #ffffff;
     --text-dim: #a8a8a8;
-    --accent: #0095f6;          /* Biru Instagram/Biru Modern */
+    --accent: #0095f6;
     --border: #262626;
 }
 
@@ -451,9 +13,10 @@ body {
     color: var(--text-main);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
     margin: 0;
+    padding-bottom: 80px; /* Space for bottom nav */
 }
 
-/* --- NAVBAR (Lebih Slim) --- */
+/* Navbar */
 .navbar {
     background-color: var(--bg-dark);
     border-bottom: 1px solid var(--border);
@@ -463,20 +26,28 @@ body {
     z-index: 100;
 }
 
-.logo {
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin: 0;
+.nav-container {
+    max-width: 450px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* --- FEED CARD (Lebih Clean & Aesthetic) --- */
+.brand-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
+/* Feed Card */
 .post-card {
     background-color: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 8px; /* Dikit aja rounded-nya */
+    border-radius: 8px;
     margin: 20px auto;
     max-width: 450px;
-    padding-bottom: 10px;
+    overflow: hidden;
 }
 
 .post-header {
@@ -486,135 +57,61 @@ body {
     gap: 12px;
 }
 
-.post-header h4 {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin: 0;
-}
-
-.post-content {
-    padding: 0 12px 10px 12px;
-    font-size: 0.9rem;
+.avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #333;
 }
 
 .post-image-render {
     width: 100%;
     aspect-ratio: 1 / 1;
     object-fit: cover;
-    margin-bottom: 10px;
+    background: #000;
 }
 
-/* --- LIKE BUTTON (Minimalis) --- */
+.post-content {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+}
+
+.post-footer {
+    padding: 5px 12px 15px 12px;
+}
+
 .action-btn {
-    background: transparent;
+    background: none;
     border: none;
-    color: var(--text-main);
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    color: white;
     cursor: pointer;
     padding: 5px;
-}
-
-.action-btn span {
-    font-weight: 500;
-}
-
-.nav-item svg {
-    margin-bottom: 4px;
-    width: 22px;
-    height: 22px;
-}
-
-.action-btn svg {
-    width: 20px;
-    height: 20px;
-    transition: transform 0.2s;
-}
-
-.action-btn:active svg {
-    transform: scale(1.2); /* Efek "pop" pas dipencet */
-}
-
-.nav-logo {
-    height: 35px; /* Sesuaikan tinggi agar pas dengan navbar */
-    width: auto;
-    display: block;
-}
-
-.logo-link {
-    text-decoration: none;
-}
-
-.nav-container {
-    display: flex;
-    justify-content: space-between; /* Logo kiri, tombol kanan */
-    align-items: center;            /* Menjaga logo dan tombol tetap sejajar tengah */
-    padding: 5px 10px;
-}
-
-.nav-logo {
-    height: 40px;      /* Atur tinggi logo (sesuaikan dengan selera) */
-    width: auto;       /* Menjaga proporsi gambar tidak gepeng */
-    display: block;    /* Menghilangkan celah bawah pada gambar */
-}
-
-.logo-link {
-    text-decoration: none;
     display: flex;
     align-items: center;
+    gap: 5px;
 }
 
-/* Container logo dan teks */
-.logo-link {
-    display: flex;
-    align-items: center; /* Menjaga logo & teks tetap di tengah vertikal */
-    gap: 12px;           /* Jarak logo sama teks biar gak nempel */
-    text-decoration: none;
+/* Modal & UI Elements */
+.modal-overlay {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.8);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
 }
 
-/* Mengatur ukuran logo */
-.nav-logo {
-    height: 35px;        /* Sesuaikan tinggi agar proporsional */
-    width: auto;
-}
-
-/* Font unik untuk teks */
-.brand-text {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.6rem;
-    color: #ffffff;
-    letter-spacing: 1.5px; /* Efek huruf lebih renggang biar kelihatan mahal */
-    margin: 0;
-}
-
-.comment-input {
-    width: 80%;
+.mc-panel {
     background: #1a1a1a;
-    border: 1px solid #333;
-    color: white;
-    padding: 8px;
-    border-radius: 5px;
-    margin-top: 5px;
+    padding: 20px;
+    border-radius: 15px;
+    width: 90%; max-width: 400px;
 }
 
-.comment-section {
-    background: #0f0f0f;
-    margin-top: 5px;
-}
-
-.comment-input {
-    background: #111;
-    border: 1px solid #333;
-    color: white;
-    padding: 8px;
-    border-radius: 4px;
-}
-.comment-section {
-    background: #161616;
-}
-
-.action-btn svg {
-    transition: fill 0.2s ease, stroke 0.2s ease;
+/* Bottom Nav */
+.bottom-nav {
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    background: var(--bg-dark);
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-around;
+    padding: 15px 0; z-index: 999;
 }
