@@ -123,7 +123,7 @@ async function handleCreatePost() {
 // FEED & INTERACTION
 async function loadFeed() {
     const feedContainer = document.getElementById('feed-container');
-    feedContainer.innerHTML = 'Memuat feed...';
+    feedContainer.innerHTML = '<div class="loading">Memuat feed...</div>';
     
     const { data: posts, error } = await supabaseClient
         .from('posts')
@@ -132,6 +132,8 @@ async function loadFeed() {
             profiles!posts_user_id_fkey (username, avatar_url)
         `)
         .order('created_at', { ascending: false });
+
+    feedContainer.innerHTML = '';
 
     if (error) {
         console.error("DEBUG ERROR FEED:", error); // <-- LIHAT INI DI CONSOLE
