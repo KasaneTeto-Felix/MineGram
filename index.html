@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FelixMods | Minecraft Social Media</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Panggil CDN Supabase JS Resmi -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- Navbar Atas Ala Menu Minecraft -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="logo">⛏️ Felix-Mods</h1>
+            <div id="auth-buttons">
+                <!-- Tombol bakal berubah dinamis lewat JavaScript nanti -->
+                <button id="btn-login" class="mc-button">Login / Register</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Area Bikin Postingan Baru (Hanya Muncul/Bisa Diklik Kalau Udah Login) -->
+        <section id="create-post-box" class="mc-panel" style="display: none;">
+            <h3>Share Your Minecraft Adventure!</h3>
+            <textarea id="post-content" placeholder="Ada kabar seru apa di world lu hari ini, bray?..." rows="3"></textarea>
+            
+            <div class="post-actions">
+                <label for="post-image" class="mc-button-secondary">
+                    📸 Add Screenshot
+                </label>
+                <input type="file" id="post-image" accept="image/*" style="display: none;">
+                <span id="file-name-preview">Gak ada gambar dipilih</span>
+                <button id="btn-submit-post" class="mc-button">Post 🚀</button>
+            </div>
+        </section>
+
+        <!-- Container Tempat Semua Feed Postingan Muncul -->
+        <section id="feed-container">
+            <div class="loading">Loading feed dari world... 🔄</div>
+        </section>
+    </main>
+
+    <!-- Panggil logic JS kita -->
+    <script src="app.js"></script>
+</body>
+                  </html>
