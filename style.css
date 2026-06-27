@@ -278,3 +278,343 @@ textarea:focus {
 .modal-footer-toggle a:hover {
     text-decoration: underline;
 }
+
+/* ========================================== */
+/* STYLES FOR BOTTOM NAVIGATION BAR           */
+/* ========================================== */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--bg-panel);
+    border-top: 2px solid var(--border-color);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0;
+    z-index: 999;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #aaa;
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: color 0.2s;
+    cursor: pointer;
+}
+
+.nav-icon {
+    font-size: 1.3rem;
+    margin-bottom: 2px;
+}
+
+.nav-item:hover, .nav-item.active {
+    color: var(--mc-green);
+}
+
+/* Jaga agar konten utama tidak tertutup bottom nav di mobile */
+body {
+    padding-bottom: 80px; 
+}
+
+/* Sembunyikan bottom nav di desktop agar tetap fokus ke feed center */
+@media (min-width: 768px) {
+    .bottom-nav {
+        /* Opsional: Lu bisa hapus display none kalau mau di desktop tetep ada */
+    }
+}
+
+/* Update Feed Card Style */
+.post-card {
+    background-color: var(--bg-panel);
+    border: none; /* Hilangin border biar clean */
+    padding: 0;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 20px;
+}
+
+.post-header {
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+}
+
+.post-image-render {
+    width: 100%;
+    aspect-ratio: 1 / 1; /* Ala Instagram Square */
+    object-fit: cover;
+    border-radius: 0;
+    border: none;
+    margin: 10px 0;
+}
+
+.post-footer {
+    padding: 0 15px;
+    border-top: none;
+    gap: 20px;
+}
+
+/* Tombol Like ala IG */
+.action-btn {
+    font-size: 1.5rem; /* Icon lebih gede */
+}
+
+/* --- UI Minimalis & Sleek --- */
+
+/* Feed Card lebih rapi */
+.post-card {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    margin: 15px auto;
+    max-width: 500px; /* Biar gak terlalu lebar di desktop */
+    overflow: hidden;
+}
+
+/* Header User */
+.post-header {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Post Image agar proporsional */
+.post-image-render {
+    width: 100%;
+    display: block;
+    background: #000;
+}
+
+/* --- Tombol Like (Lebih kecil & Manis) --- */
+.post-footer {
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 0.9rem; /* Dikecilin biar gak dominan */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    transition: background 0.2s;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.action-btn.liked {
+    color: #ff4757;
+}
+
+/* --- UI Modal biar gak kaku --- */
+.mc-panel {
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+}
+
+/* --- ROOT & GLOBAL MODERN --- */
+:root {
+    --bg-dark: #000000;         /* Hitam pekat ala Instagram/Threads */
+    --bg-card: #121212;         /* Abu sangat gelap */
+    --text-main: #ffffff;
+    --text-dim: #a8a8a8;
+    --accent: #0095f6;          /* Biru Instagram/Biru Modern */
+    --border: #262626;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+    margin: 0;
+}
+
+/* --- NAVBAR (Lebih Slim) --- */
+.navbar {
+    background-color: var(--bg-dark);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 15px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* --- FEED CARD (Lebih Clean & Aesthetic) --- */
+.post-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px; /* Dikit aja rounded-nya */
+    margin: 20px auto;
+    max-width: 450px;
+    padding-bottom: 10px;
+}
+
+.post-header {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.post-header h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.post-content {
+    padding: 0 12px 10px 12px;
+    font-size: 0.9rem;
+}
+
+.post-image-render {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    margin-bottom: 10px;
+}
+
+/* --- LIKE BUTTON (Minimalis) --- */
+.action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.action-btn span {
+    font-weight: 500;
+}
+
+.nav-item svg {
+    margin-bottom: 4px;
+    width: 22px;
+    height: 22px;
+}
+
+.action-btn svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s;
+}
+
+.action-btn:active svg {
+    transform: scale(1.2); /* Efek "pop" pas dipencet */
+}
+
+.nav-logo {
+    height: 35px; /* Sesuaikan tinggi agar pas dengan navbar */
+    width: auto;
+    display: block;
+}
+
+.logo-link {
+    text-decoration: none;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between; /* Logo kiri, tombol kanan */
+    align-items: center;            /* Menjaga logo dan tombol tetap sejajar tengah */
+    padding: 5px 10px;
+}
+
+.nav-logo {
+    height: 40px;      /* Atur tinggi logo (sesuaikan dengan selera) */
+    width: auto;       /* Menjaga proporsi gambar tidak gepeng */
+    display: block;    /* Menghilangkan celah bawah pada gambar */
+}
+
+.logo-link {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+/* Container logo dan teks */
+.logo-link {
+    display: flex;
+    align-items: center; /* Menjaga logo & teks tetap di tengah vertikal */
+    gap: 12px;           /* Jarak logo sama teks biar gak nempel */
+    text-decoration: none;
+}
+
+/* Mengatur ukuran logo */
+.nav-logo {
+    height: 35px;        /* Sesuaikan tinggi agar proporsional */
+    width: auto;
+}
+
+/* Font unik untuk teks */
+.brand-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: #ffffff;
+    letter-spacing: 1.5px; /* Efek huruf lebih renggang biar kelihatan mahal */
+    margin: 0;
+}
+
+.comment-input {
+    width: 80%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: white;
+    padding: 8px;
+    border-radius: 5px;
+    margin-top: 5px;
+}
+
+.comment-section {
+    background: #0f0f0f;
+    margin-top: 5px;
+}
+
+.comment-input {
+    background: #111;
+    border: 1px solid #333;
+    color: white;
+    padding: 8px;
+    border-radius: 4px;
+}
+.comment-section {
+    background: #161616;
+}
+
+.action-btn svg {
+    transition: fill 0.2s ease, stroke 0.2s ease;
+}
