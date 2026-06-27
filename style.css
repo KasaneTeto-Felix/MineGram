@@ -1,0 +1,198 @@
+/* style.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+    --bg-main: #121212;         /* Abu-abu sangat gelap ala Discord/Netherite */
+    --bg-panel: #1e1e1e;        /* Panel box tempat postingan */
+    --mc-green: #5c8e32;        /* Hijau rumput Minecraft */
+    --mc-green-hover: #4d7528;
+    --text-color: #f5f5f5;
+    --border-color: #333333;
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-color);
+    padding-bottom: 50px;
+}
+
+.container {
+    max-width: 650px;
+    margin: 20px auto;
+    padding: 0 15px;
+}
+
+/* Navbar Atas */
+.navbar {
+    background-color: var(--bg-panel);
+    border-bottom: 3px solid var(--border-color);
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.nav-container {
+    max-width: 650px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+}
+.logo {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+/* Tombol Gaya Minecraft Kotak (Efek 3D) */
+.mc-button {
+    background-color: var(--mc-green);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 4px solid #3a5920; /* Efek shadow tebal bawah kotak */
+    transition: all 0.1s ease;
+}
+.mc-button:active {
+    border-bottom-width: 0px;
+    margin-top: 4px;
+}
+.mc-button:hover {
+    background-color: var(--mc-green-hover);
+}
+
+.mc-button-secondary {
+    background-color: #444;
+    color: #ccc;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+.mc-button-secondary:hover {
+    background-color: #555;
+    color: #fff;
+}
+
+/* Box Panel Utama */
+.mc-panel {
+    background-color: var(--bg-panel);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+/* Input Textarea */
+textarea {
+    width: 100%;
+    background-color: #151515;
+    border: 1px solid var(--border-color);
+    color: white;
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 10px;
+    resize: none;
+    outline: none;
+}
+textarea:focus {
+    border-color: var(--mc-green);
+}
+
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+#file-name-preview {
+    font-size: 0.85rem;
+    color: #888;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Desain Feed Card Postingan */
+.post-card {
+    background-color: var(--bg-panel);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+.post-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px; /* Kotak ala kepala Minecraft */
+    margin-right: 12px;
+    border: 2px solid #555;
+    background-color: #333;
+    object-fit: cover;
+}
+.user-info h4 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+.user-info span {
+    font-size: 0.75rem;
+    color: #888;
+}
+.post-content {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    word-break: break-word;
+}
+.post-image-render {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 12px;
+}
+
+/* Tombol Interaksi Bawah */
+.post-footer {
+    display: flex;
+    gap: 15px;
+    border-top: 1px solid #2a2a2a;
+    padding-top: 10px;
+}
+.action-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s;
+}
+.action-btn:hover {
+    color: white;
+}
+
+.loading {
+    text-align: center;
+    color: #888;
+    padding: 40px;
+  }
