@@ -1,13 +1,15 @@
-// app.js
+// ====================================================================
+// app.js (FULL INTEGRATED VERSION)
+// ====================================================================
 
 // 1. KONFIGURASI SUPABASE (Ganti dengan data milik lu bray)
 const SUPABASE_URL = "https://tixjlrflmthhgfrmxrcw.supabase.co"; 
 const SUPABASE_ANON_KEY = "sb_publishable_Wb9GS5ZO1kI9QFS6x2mnBA_4-aZn5ow"; 
 
-// Inisialisasi Supabase Client
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Inisialisasi Supabase Client menggunakan nama variabel non-bentrok
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 2. SELEKTOR ELEMENT HTML
+// 2. SELEKTOR ELEMENT HTML UTAMA
 const btnLogin = document.getElementById('btn-login');
 const authButtonsDiv = document.getElementById('auth-buttons');
 const createPostBox = document.getElementById('create-post-box');
@@ -17,17 +19,27 @@ const fileNamePreview = document.getElementById('file-name-preview');
 const btnSubmitPost = document.getElementById('btn-submit-post');
 const feedContainer = document.getElementById('feed-container');
 
-// State User yang sedang Login
+// SELEKTOR ELEMENT CUSTOM MODAL AUTH
+const authModal = document.getElementById('auth-modal');
+const btnCloseModal = document.getElementById('btn-close-modal');
+const authForm = document.getElementById('auth-form');
+const modalTitle = document.getElementById('modal-title');
+const registerFields = document.getElementById('register-fields');
+const btnModalSubmit = document.getElementById('btn-modal-submit');
+const toggleAuthText = document.getElementById('toggle-auth-text');
+
+// State Aplikasi
 let currentUser = null;
 let userProfile = null;
+let isLoginMode = true; // true = Login, false = Register
 
-// 3. EVENT LISTENERS
+// 3. EVENT LISTENERS UTAMA
 document.addEventListener('DOMContentLoaded', () => {
     checkUserSession();
     loadFeed();
 });
 
-// Deteksi kalau ada file screenshot yang dipilih
+// Deteksi file screenshot saat dipilih
 postImageInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
         fileNamePreview.textContent = `📸 ${e.target.files[0].name}`;
@@ -36,21 +48,110 @@ postImageInput.addEventListener('change', (e) => {
     }
 });
 
-// Tombol Submit Postingan
+// Submit postingan baru
 btnSubmitPost.addEventListener('click', handleCreatePost);
 
-// Tombol Login / Logout
-btnLogin.addEventListener('click', handleAuthAction);
 
+// ====================================================================
+// 4. LOGIKA CUSTOM MODAL AUTH (LOGIN & REGISTER)
+// ====================================================================
 
-// 4. LOGIC AUTHENTICATION (LOGIN / REGISTER)
+// Fungsi membuka modal ketika tombol login di navbar diklik
+function handleAuthAction() {
+    isLoginMode = true;
+    switchAuthMode();
+    authModal.style.display = 'flex';
+}
+
+// Tutup modal via tombol X
+btnCloseModal.addEventListener('click', () => {
+    authModal.style.display = 'none';
+});
+
+// Mengubah tampilan form antara mode Login dan Register
+function switchAuthMode() {
+    if (isLoginMode) {
+        modalTitle.textContent = "Minecraft Sign In";
+        registerFields.style.display = "none";
+        btnModalSubmit.textContent = "Sign In ⚔️";
+        toggleAuthText.innerHTML = `Belum punya akun? <a href="#" id="link-switch-auth">Daftar Akun Baru</a>`;
+        
+        document.getElementById('link-switch-auth').addEventListener('click', (e) => {
+            e.preventDefault(); isLoginMode = false; switchAuthMode();
+        });
+    } else {
+        modalTitle.textContent = "Create New Player";
+        registerFields.style.display = "block";
+        btnModalSubmit.textContent = "Register Account 📜";
+        toggleAuthText.innerHTML = `Sudah punya akun? <a href="#" id="link-switch-auth">Login di sini</a>`;
+        
+        document.getElementById('link-switch-auth').addEventListener('click', (e) => {
+            e.preventDefault(); isLoginMode = true; switchAuthMode();
+        });
+    }
+}
+
+// Handler Submit Data Form Auth
+authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value.trim();
+    
+    btnModalSubmit.disabled = true;
+    btnModalSubmit.textContent = "Processing... ⏳";
+
+    if (isLoginMode) {
+        // --- PROSES AUTH LOGIN ---
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+            alert(`Gagal Login: ${error.message}`);
+            btnModalSubmit.disabled = false;
+            btnModalSubmit.textContent = "Sign In ⚔️";
+        } else {
+            window.location.reload();
+        }
+    } else {
+        // --- PROSES AUTH REGISTER ---
+        const username = document.getElementById('auth-username').value.trim();
+        const mcUsername = document.getElementById('auth-mc-username').value.trim() || "Steve";
+        
+        if (!username) {
+            alert("Username sosmed wajib diisi bray!");
+            btnModalSubmit.disabled = false;
+            btnModalSubmit.textContent = "Register Account 📜";
+            return;
+        }
+
+        const { data, error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { username: username, minecraft_username: mcUsername }
+            }
+        });
+
+        if (error) {
+            alert(`Gagal Daftar: ${error.message}`);
+            btnModalSubmit.disabled = false;
+            btnModalSubmit.textContent = "Register Account 📜";
+        } else {
+            alert("Pendaftaran Sukses bray! Silakan langsung login pake akun baru lu.");
+            isLoginMode = true;
+            switchAuthMode();
+            btnModalSubmit.disabled = false;
+        }
+    }
+});
+
+// Cek Sesi Pengguna saat Page di-load
 async function checkUserSession() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     
     if (session) {
         currentUser = session.user;
-        // Ambil data profil dari tabel public.profiles
-        const { data: profile } = await supabase
+        // Tarik data profil pendukung dari public.profiles
+        const { data: profile } = await supabaseClient
             .from('profiles')
             .select('*')
             .eq('id', currentUser.id)
@@ -65,9 +166,9 @@ async function checkUserSession() {
     }
 }
 
+// Memperbarui UI Elemen tombol navigasi atas & kotak pos berdasarkan status login
 function updateAuthUI(isLoggedIn) {
     if (isLoggedIn) {
-        // Ambil avatar, jika di database kosong, pakai fallback Minotar (kepala Steve)
         const avatarSrc = userProfile?.avatar_url || `https://minotar.net/helm/${userProfile?.minecraft_username || 'Steve'}/100.png`;
         
         authButtonsDiv.innerHTML = `
@@ -77,53 +178,22 @@ function updateAuthUI(isLoggedIn) {
                 <button id="btn-logout" class="mc-button-secondary" style="padding: 5px 10px;">Logout</button>
             </div>
         `;
-        document.getElementById('btn-logout').addEventListener('click', () => supabase.auth.signOut().then(() => window.location.reload()));
-        createPostBox.style.display = "block"; // Tampilkan kotak postingan
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            supabaseClient.auth.signOut().then(() => window.location.reload());
+        });
+        createPostBox.style.display = "block"; 
+        authModal.style.display = 'none'; 
     } else {
         authButtonsDiv.innerHTML = `<button id="btn-login" class="mc-button">Login / Register</button>`;
         document.getElementById('btn-login').addEventListener('click', handleAuthAction);
-        createPostBox.style.display = "none"; // Sembunyikan kotak postingan kalau belum login
-    }
-}
-
-async function handleAuthAction() {
-    // Karena ini vanilla JS murni, kita pakai prompt bawaan browser untuk skenario simpel
-    const email = prompt("Masukkan Email lu, bray:");
-    if (!email) return;
-    const password = prompt("Masukkan Password (min 6 karakter):");
-    if (!password) return;
-
-    // Coba Login dulu
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (signInError) {
-        // Jika gagal login, asumsikan dia user baru mau daftar
-        const confirmRegister = confirm("Akun gak terdaftar. Mau sekalian bikin akun baru pake email ini?");
-        if (confirmRegister) {
-            const username = prompt("Masukkan Username Sosmed lu:");
-            const mcUsername = prompt("Masukkan Nickname/Username Minecraft lu (buat narik skin):") || "Steve";
-            
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { username: username, minecraft_username: mcUsername }
-                }
-            });
-
-            if (signUpError) {
-                alert(`Gagal daftar: ${signUpError.message}`);
-            } else {
-                alert("Pendaftaran sukses! Silakan cek email lu buat verifikasi (kalau verifikasi email aktif), lalu coba login.");
-            }
-        }
-    } else {
-        window.location.reload();
+        createPostBox.style.display = "none"; 
     }
 }
 
 
-// 5. LOGIC POSTING (UPLOAD IMAGE & INSERT DATABASE)
+// ====================================================================
+// 5. LOGIKA POSTING (UPLOAD SCREENSHOT & INSERT DATABASE)
+// ====================================================================
 async function handleCreatePost() {
     const content = postContent.value.trim();
     if (!content) return alert("Isi dulu text postingannya bray!");
@@ -134,13 +204,12 @@ async function handleCreatePost() {
     let uploadedImageUrl = null;
     const imageFile = postImageInput.files[0];
 
-    // Jika user mengupload gambar screenshot Minecraft
+    // Proses upload jika user melampirkan screenshot gambar
     if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
-        // Buat nama file unik biar gak tabrakan di bucket
         const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`; 
         
-        const { data: storageData, error: storageError } = await supabase.storage
+        const { data: storageData, error: storageError } = await supabaseClient.storage
             .from('post-images')
             .upload(fileName, imageFile);
 
@@ -151,16 +220,16 @@ async function handleCreatePost() {
             return;
         }
 
-        // Ambil URL Publik dari file yang barusan di-upload karena bucket-nya PUBLIC
-        const { data: { publicUrl } } = supabase.storage
+        // Dapatkan Public URL berhubung status bucket post-images diatur ke PUBLIC
+        const { data: { publicUrl } } = supabaseClient.storage
             .from('post-images')
             .getPublicUrl(fileName);
             
         uploadedImageUrl = publicUrl;
     }
 
-    // Masukkan data ke tabel posts
-    const { error: insertError } = await supabase
+    // Insert baris data ke tabel posts
+    const { error: insertError } = await supabaseClient
         .from('posts')
         .insert([
             {
@@ -173,11 +242,11 @@ async function handleCreatePost() {
     if (insertError) {
         alert(`Gagal membuat postingan: ${insertError.message}`);
     } else {
-        // Reset Form
+        // Pembersihan form
         postContent.value = "";
         postImageInput.value = "";
         fileNamePreview.textContent = "Gak ada gambar dipilih";
-        loadFeed(); // Refresh feed biar postingan baru langsung muncul
+        loadFeed(); // Refresh postingan terupdate
     }
 
     btnSubmitPost.disabled = false;
@@ -185,12 +254,14 @@ async function handleCreatePost() {
 }
 
 
-// 6. LOGIC LOAD FEED (GET DATA POSTS JOIN PROFILES)
+// ====================================================================
+// 6. LOGIKA LOAD FEED (GET POSTS DENGAN RELATION PROFILES)
+// ====================================================================
 async function loadFeed() {
     feedContainer.innerHTML = '<div class="loading">Loading feed dari world... 🔄</div>';
 
-    // Ambil data posts sekalian join dengan tabel profiles biar dapet data username & avatar_url
-    const { data: posts, error } = await supabase
+    // Mengambil data posts serta data profile pembuatnya via foreign key relation
+    const { data: posts, error } = await supabaseClient
         .from('posts')
         .select(`
             id, created_at, content, image_url, likes_count,
@@ -208,11 +279,11 @@ async function loadFeed() {
         return;
     }
 
-    feedContainer.innerHTML = ""; // Bersihkan loading
+    feedContainer.innerHTML = ""; 
 
+    // Render list post ke element feed
     posts.forEach(post => {
         const profile = post.profiles;
-        // Fallback jika tidak ada custom avatar dari bucket profile-pictures, tembak Minotar API
         const avatarSrc = profile?.avatar_url || `https://minotar.net/helm/${profile?.minecraft_username || 'Steve'}/100.png`;
         const postTime = new Date(post.created_at).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
@@ -243,14 +314,14 @@ async function loadFeed() {
     });
 }
 
-// Fungsi pengaman biar ga kena XSS (hacker masukin script html aneh-aneh di postingan)
+// Proteksi XSS injeksi HTML tag mencurigakan
 function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
 }
 
-// Fungsi dummy Like (Nanti kita sempurnakan relasinya ke tabel likes)
+// Fungsi Trigger Like
 function handleLike(postId) {
-    alert(`Lu nge-like post: ${postId}. Fitur insert ke tabel likes bakal jalan setelah auth lu lancar bray!`);
-          }
+    alert(`Lu nge-like post: ${postId}. Fitur database likes akan kita sempurnakan di langkah berikutnya bray!`);
+}
