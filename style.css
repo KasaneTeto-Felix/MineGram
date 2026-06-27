@@ -312,8 +312,14 @@ textarea:focus {
     margin-bottom: 2px;
 }
 
-.nav-item:hover, .nav-item.active {
-    color: var(--mc-green);
+.nav-item.active {
+    color: #ffffff !important; /* Jadi putih/terang kalau diklik */
+    border-top: 2px solid #ffffff; /* Garis atas sebagai penanda */
+}
+
+/* Biar icon-nya juga ikut berubah warna kalau mau */
+.nav-item.active svg {
+    stroke: #ffffff;
 }
 
 /* Jaga agar konten utama tidak tertutup bottom nav di mobile */
@@ -617,4 +623,166 @@ body {
 
 .action-btn svg {
     transition: fill 0.2s ease, stroke 0.2s ease;
-  }
+}
+
+/* Container gelap di belakang */
+.modal-overlay {
+    display: none; /* Default ngumpet */
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85); /* Gelap transparan */
+    z-index: 9999; /* Pastikan paling depan */
+    justify-content: center;
+    align-items: center;
+}
+
+/* Kotak putih tempat form */
+.modal-content {
+    background: #1a1a1a; /* Warna gelap ala IG */
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    color: white;
+    position: relative;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: none; border: none;
+    color: white; font-size: 24px;
+    cursor: pointer;
+}
+
+#profile-modal {
+    display: none; /* Tetap biarkan hidden default */
+    position: fixed !important; /* Paksa nempel di layar */
+    top: 0; left: 0;
+    width: 100vw !important; /* Paksa lebar full */
+    height: 100vh !important; /* Paksa tinggi full */
+    background: rgba(0, 0, 0, 0.8) !important; /* Kasih background biar keliatan ada */
+    z-index: 9999999 !important; /* Paksa paling depan di seluruh dunia */
+    
+    /* Paksa flex biar kontennya keliatan */
+    
+}
+
+/* --- Modal Overlay (Background Blur) --- */
+.modal-overlay {
+    display: none; 
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7); /* Transparansi gelap */
+    backdrop-filter: blur(5px); /* Efek kaca blur */
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* --- Modal Content Container --- */
+.modal-content {
+    background: #1a1a1a; /* Warna dark */
+    color: #ffffff;
+    padding: 30px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
+    position: relative;
+    animation: fadeIn 0.3s ease;
+}
+
+/* --- Avatar & Edit --- */
+.avatar-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#profile-preview {
+    border: 3px solid #55ff55; /* Aksen warna hijau gaming */
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+
+#profile-preview:hover {
+    transform: scale(1.05);
+}
+
+/* --- Input Fields --- */
+input, textarea {
+    width: 100%;
+    background: #262626;
+    border: 1px solid #444;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-sizing: border-box; /* Penting biar padding gak ngerusak width */
+    font-size: 14px;
+}
+
+input:focus {
+    outline: none;
+    border-color: #55ff55;
+}
+
+/* --- Button Styling --- */
+.btn-save {
+    background: #55ff55;
+    color: #000;
+    font-weight: bold;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-save:hover {
+    background: #44cc44;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* --- Animasi --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.toast {
+    background: #1a1a1a;
+    color: #fff;
+    padding: 15px 25px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast.success { border-left: 5px solid #55ff55; }
+.toast.error { border-left: 5px solid #ff4444; }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

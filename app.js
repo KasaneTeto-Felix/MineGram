@@ -36,17 +36,63 @@ function escapeHTML(str) {
 }
 
 // INIT
+// Di dalam file app.js, cari bagian ini:
 document.addEventListener('DOMContentLoaded', async () => {
     await checkUserSession(); 
     loadFeed();               
+
+    if (btnClosePost) {
+        btnClosePost.addEventListener('click', () => {
+            postModal.style.display = 'none'; // Sembunyiin modal
+            resetNav(); // Balikin nav ke Home
+        });
+    }
+    // -----------------------------
 });
 
-// NAVIGATION
-document.getElementById('nav-home').addEventListener('click', (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); loadFeed(); });
-document.getElementById('nav-add-post').addEventListener('click', (e) => { e.preventDefault(); !currentUser ? (alert("Login dulu bray!"), handleAuthAction()) : postModal.style.display = 'flex'; });
-btnClosePost.addEventListener('click', () => { postModal.style.display = 'none'; });
-postImageInput.addEventListener('change', (e) => { if (e.target.files?.length > 0) fileNamePreview.textContent = `📸 ${e.target.files[0].name}`; });
-btnSubmitPost.addEventListener('click', handleCreatePost);
+document.querySelector('.bottom-nav').addEventListener('click', (e) => {
+    const targetItem = e.target.closest('.nav-item');
+    if (!targetItem) return;
+
+    e.preventDefault();
+
+    // 1. Update UI (Class Active)
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    targetItem.classList.add('active');
+
+    // 2. Routing Aksi
+    const action = targetItem.getAttribute('data-action');
+
+    switch (action) {
+        case 'home':
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (typeof loadFeed === 'function') loadFeed();
+            break;
+
+        case 'post':
+            const postModal = document.getElementById('post-modal');
+            if (!currentUser) {
+                showNotification("Login Terlebih Dahulu!");
+                handleAuthAction();
+            } else if (postModal) {
+                postModal.style.display = 'flex';
+            } else {
+                console.error("Elemen 'post-modal' tidak ditemukan di HTML!");
+            }
+            break;
+
+        case 'profile':
+            console.log("Tombol Profile diklik!"); 
+            if (!currentUser) {
+                showNotification("Login Terlebih Dahulu");
+                handleAuthAction();
+            } else {
+                // FIX: Panggil function-nya di sini!
+                openEditProfile();
+            }
+            break;
+    }
+});
 
 // AUTH
 function handleAuthAction() { isLoginMode = true; switchAuthMode(); authModal.style.display = 'flex'; }
@@ -68,12 +114,12 @@ authForm.addEventListener('submit', async (e) => {
 
     if (isLoginMode) {
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { alert(error.message); btnModalSubmit.disabled = false; } else window.location.reload();
+        if (error) { showNotification(error.message); btnModalSubmit.disabled = false; } else window.location.reload();
     } else {
         const username = document.getElementById('auth-username').value.trim();
         const mcUsername = document.getElementById('auth-mc-username').value.trim() || "Steve";
         const { error } = await supabaseClient.auth.signUp({ email, password, options: { data: { username, minecraft_username: mcUsername } } });
-        if (error) { alert(error.message); btnModalSubmit.disabled = false; } else { alert("Sukses! Silakan login."); isLoginMode = true; switchAuthMode(); btnModalSubmit.disabled = false; }
+        if (error) { showNotification(error.message); btnModalSubmit.disabled = false; } else { showNotification("Sukses! Silakan login."); isLoginMode = true; switchAuthMode(); btnModalSubmit.disabled = false; }
     }
 });
 
@@ -102,22 +148,47 @@ function updateAuthUI(isLoggedIn) {
 // POSTING
 async function handleCreatePost() {
     const content = postContent.value.trim();
-    if (!content) return alert("Isi text dulu bray!");
+    if (!content) return showNotification("Isi text dulu bray!", "error");
+    
     btnSubmitPost.disabled = true;
     btnSubmitPost.textContent = "Posting... ⏳";
     
     let uploadedImageUrl = null;
     const imageFile = postImageInput.files[0];
+    
     if (imageFile) {
         const fileName = `${currentUser.id}_${Date.now()}.${imageFile.name.split('.').pop()}`;
         const { data, error } = await supabaseClient.storage.from('post-images').upload(fileName, imageFile);
-        if (error) { alert("Gagal upload: " + error.message); btnSubmitPost.disabled = false; return; }
+        
+        if (error) { 
+            showNotification("Gagal upload: " + error.message, "error"); 
+            btnSubmitPost.disabled = false; 
+            return; 
+        }
         uploadedImageUrl = supabaseClient.storage.from('post-images').getPublicUrl(fileName).data.publicUrl;
     }
 
-    const { error } = await supabaseClient.from('posts').insert([{ user_id: currentUser.id, content, image_url: uploadedImageUrl }]);
-    if (error) { alert("Gagal post: " + error.message); } else { postModal.style.display = 'none'; postContent.value = ""; loadFeed(); }
-    btnSubmitPost.disabled = false; btnSubmitPost.textContent = "Post 🚀";
+    const { error } = await supabaseClient.from('posts').insert([{ 
+        user_id: currentUser.id, 
+        content, 
+        image_url: uploadedImageUrl 
+    }]);
+
+    if (error) { 
+        showNotification("Gagal post: " + error.message, "error"); 
+    } else { 
+        postModal.style.display = 'none'; 
+        postContent.value = ""; 
+        postImageInput.value = ""; // Bersihin input file
+        fileNamePreview.textContent = "No file"; // Reset label file
+        
+        loadFeed(); 
+        resetNav(); // PANGGIL INI BIAR NAV BALIK KE HOME
+        showNotification("Berhasil di-post, bray! 🚀", "success");
+    }
+    
+    btnSubmitPost.disabled = false; 
+    btnSubmitPost.textContent = "Post 🚀";
 }
 
 // FEED & INTERACTION
@@ -189,7 +260,7 @@ async function loadFeed() {
 
 // LIKES & COMMENTS LOGIC
 async function handleLike(postId, btn) {
-    if (!currentUser) return alert("Login dulu bray!");
+    if (!currentUser) return showNotification("Login dulu bray!");
     const svg = btn.querySelector('svg');
     const span = btn.querySelector('span');
     const { data: existingLike } = await supabaseClient.from('likes').select('id').eq('post_id', postId).eq('user_id', currentUser.id).maybeSingle();
@@ -208,11 +279,11 @@ async function handleLike(postId, btn) {
 async function submitComment(postId) {
     const input = document.getElementById(`comment-input-${postId}`);
     const content = input.value.trim();
-    if (!content) return alert("Isi komennya bray!");
-    if (!currentUser) return alert("Login dulu buat komen!");
+    if (!content) return showNotification("Isi komennya bray!");
+    if (!currentUser) return showNotification("Login dulu buat komen!");
 
     const { error } = await supabaseClient.from('comments').insert([{ post_id: postId, user_id: currentUser.id, content }]);
-    if (error) { alert("Gagal kirim: " + error.message); } 
+    if (error) { showNotification("Gagal kirim: " + error.message); } 
     else { 
         input.value = ""; 
         await loadComments(postId); 
@@ -275,4 +346,169 @@ function toggleCommentSection(postId) {
     } else {
         section.style.display = 'none';
     }
+}
+
+// ====================================================
+// FINAL PROFILE EDIT MODULE
+// ====================================================
+let cropper = null;
+
+// Buka Modal
+function openEditProfile() {
+    const modal = document.getElementById('profile-modal');
+    if (modal) {
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.zIndex = '999999'; // Pastikan paling depan
+        console.log("Modal display sudah di-set ke flex!");
+        // modal.style.display = 'flex';
+        // Isi Data
+        document.getElementById('edit-username').value = userProfile?.username || '';
+        document.getElementById('edit-mc-username').value = userProfile?.minecraft_username || '';
+        document.getElementById('edit-bio').value = userProfile?.bio || '';
+        document.getElementById('profile-preview').src = userProfile?.avatar_url || 'https://minotar.net/helm/Steve/100.png';
+    }
+}
+
+// Tutup Modal
+function closeEditProfile() {
+    document.getElementById('profile-modal').style.display = 'none';
+    document.getElementById('cropper-modal').style.display = 'none';
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+}
+
+// Simpan Data
+async function saveProfile() {
+    const btnSave = document.querySelector('.btn-save');
+    btnSave.disabled = true; btnSave.textContent = "Menyimpan...";
+
+    try {
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({
+                username: document.getElementById('edit-username').value,
+                minecraft_username: document.getElementById('edit-mc-username').value,
+                bio: document.getElementById('edit-bio').value,
+                avatar_url: document.getElementById('profile-preview').src,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUser.id);
+
+        if (error) throw error;
+        showNotification("Profil berhasil diperbarui!");
+        location.reload();
+    } catch (err) {
+        showNotification("Gagal: " + err.message);
+        btnSave.disabled = false; btnSave.textContent = "Selesai";
+    }
+}
+
+// Handle Upload File
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('file-input');
+    
+    if (!fileInput) return;
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const modal = document.getElementById('cropper-modal');
+            const img = document.getElementById('image-to-crop');
+            // FIX: Deklarasikan elemennya di sini
+            const profileModal = document.getElementById('profile-modal'); 
+
+            if (modal && img) {
+                // Sembunyiin profil biar gak numpuk
+                if (profileModal) profileModal.style.display = 'none'; 
+                
+                modal.style.display = 'flex';
+                img.src = event.target.result;
+
+                if (typeof Cropper !== 'undefined') {
+                    if (window.cropperInstance) window.cropperInstance.destroy();
+                    window.cropperInstance = new Cropper(img, { aspectRatio: 1, viewMode: 1 });
+                }
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+});
+
+// Handle Crop
+async function cropAndUpload() {
+    // Gunakan window.cropperInstance biar sinkron sama yang diinisialisasi
+    const currentCropper = window.cropperInstance;
+    
+    if (!currentCropper) {
+        console.error("Gagal save: Cropper instance tidak ditemukan!");
+        showNotification("Gagal: Cropper belum aktif.");
+        return;
+    }
+
+    console.log("Memulai proses crop & upload...");
+
+    currentCropper.getCroppedCanvas().toBlob(async (blob) => {
+        if (!blob) {
+            console.error("Gagal buat blob!");
+            return;
+        }
+
+        const fileName = `${currentUser.id}_${Date.now()}.png`;
+        
+        // Upload ke Supabase
+        const { error } = await supabaseClient.storage
+            .from('avatars')
+            .upload(fileName, blob);
+
+        if (error) {
+            console.error("Error upload:", error);
+            showNotification("Gagal upload: " + error.message);
+            return;
+        }
+        
+        // Ambil URL publik
+        const { data } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+        
+        // Update UI
+        document.getElementById('profile-preview').src = data.publicUrl;
+        
+        // Tutup modal dan munculin balik profile-modal
+        document.getElementById('cropper-modal').style.display = 'none';
+        document.getElementById('profile-modal').style.display = 'flex';
+        
+        // Cleanup
+        currentCropper.destroy();
+        window.cropperInstance = null;
+        console.log("Sukses update avatar!");
+    });
+}
+
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <span>${type === 'success' ? '✅' : '❌'}</span>
+        <span>${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto-remove setelah 3 detik
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Reset Nav
+function resetNav() {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    const homeBtn = document.querySelector('[data-action="home"]');
+    if (homeBtn) homeBtn.classList.add('active');
 }
