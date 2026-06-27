@@ -200,7 +200,7 @@ async function loadFeed() {
         .from('posts')
         .select(`
             id, created_at, content, image_url,
-            profiles!posts_user_id_fkey (username, avatar_url)
+            profiles!posts_user_id_fkey (username, avatar_url, is_verified)
         `)
         .order('created_at', { ascending: false });
 
@@ -224,10 +224,15 @@ async function loadFeed() {
 
         const card = document.createElement('div');
         card.className = 'post-card';
+        const isVerified = post.profiles?.is_verified;
+        const badge = isVerified ? `
+<svg style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" viewBox="0 0 24 24" fill="#007bff">
+    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+</svg>` : '';
         card.innerHTML = `
             <div class="post-header">
                 <img src="${post.profiles?.avatar_url || 'https://minotar.net/helm/Steve/100.png'}" class="avatar">
-                <h4>${post.profiles?.username || 'Gamer'}</h4>
+                <h4>${post.profiles?.username || 'Gamer'} ${badge}</h4>
             </div>
             <div class="post-content">${escapeHTML(post.content)}</div>
             ${post.image_url ? `<img src="${post.image_url}" class="post-image-render">` : ''}
@@ -300,7 +305,7 @@ async function loadComments(postId) {
         .from('comments')
         .select(`
             content, 
-            profiles (username, avatar_url, minecraft_username)
+            profiles (username, avatar_url, minecraft_username, is_verified)
         `)
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
@@ -314,6 +319,13 @@ async function loadComments(postId) {
     if (comments.length === 0) {
         list.innerHTML = `<p style="color:#666; font-size:0.8rem;">Belum ada komen, tulis yang pertama!</p>`;
     } else {
+        // const isVerified = c.profiles?.is_verified;
+        // const badge = isVerified ? `<span style="color:#55ff55; font-size:0.7rem; margin-left:3px;">✔</span>` : '';
+        const isVerified = post.profiles?.is_verified;
+        const badge = isVerified ? `
+<svg style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" viewBox="0 0 24 24" fill="#007bff">
+    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+</svg>` : '';
         list.innerHTML = comments.map(c => {
             // Logika: Pakai avatar_url kalau ada, kalau nggak pakai minotar
             const avatarSrc = c.profiles?.avatar_url || `https://minotar.net/helm/${c.profiles?.minecraft_username || 'Steve'}/100.png`;
@@ -322,7 +334,7 @@ async function loadComments(postId) {
                 <div style="margin:10px 0; display:flex; align-items:flex-start; gap:10px;">
                     <img src="${avatarSrc}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #444;">
                     <div style="display:flex; flex-direction:column;">
-                        <b style="color:#55ff55; font-size:0.85rem;">${c.profiles?.username || 'Gamer'}</b>
+                        <b style="color:#55ff55; font-size:0.85rem;">${c.profiles?.username || 'Gamer'} ${badge}</b>
                         <span style="color:#ddd; font-size:0.85rem; word-break:break-word;">${escapeHTML(c.content)}</span>
                     </div>
                 </div>
