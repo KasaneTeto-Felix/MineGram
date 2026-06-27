@@ -377,6 +377,7 @@ function closeEditProfile() {
         cropper.destroy();
         cropper = null;
     }
+    resetNav();
 }
 
 // Simpan Data
