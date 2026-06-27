@@ -786,3 +786,31 @@ input:focus {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
+
+/* Container notif harus paling depan */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2147483647; /* Angka z-index tertinggi browser */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none; /* Biar container gak nge-block klik di belakangnya */
+}
+
+.toast {
+    background: #1a1a1a; /* Background solid, JANGAN kasih backdrop-filter */
+    color: #fff;
+    padding: 15px 25px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.8); /* Shadow biar kelihatan timbul */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.3s ease-out;
+    pointer-events: auto; /* Biar notif-nya tetep bisa diklik kalau perlu */
+}
+
+/* Pastikan TIDAK ADA property 'backdrop-filter: blur' di sini */
