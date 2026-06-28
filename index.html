@@ -141,7 +141,40 @@
     </div>
 </div>
 <!-- Container Notifikasi -->
-<div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 2147483647"></div>
+<div id="notification-id" style="position: fixed; top: 20px; right: 20px; z-index: 2147483647; display:none;"></div>
+
+<!-- Admin Modal -->
+<div id="admin-modal" class="pt-modal-overlay">
+    <div class="pt-modal-card">
+        <div class="pt-header">
+            <h3>System Control</h3>
+            <button onclick="closeAdminPanel()" class="pt-btn-cancel">✕</button>
+        </div>
+        <div id="admin-content">
+            <p>Loading system stats...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="pt-modal-overlay">
+    <div class="pt-modal-card">
+        <h4 id="confirm-title">Konfirmasi Aksi</h4>
+        <p id="confirm-msg">Apakah lu yakin ingin melakukan tindakan ini?</p>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+            <button id="btn-no" class="pt-btn-cancel">Batal</button>
+            <button id="btn-yes" class="pt-btn-confirm">Konfirmasi</button>
+        </div>
+    </div>
+</div>
+<div id="loading-overlay">
+    <div class="loader-box">
+        <!-- Teks duluan supaya di atas -->
+        <span id="loading-text">Loading</span> 
+        <!-- Spinner di bawah -->
+        <div class="spinner"></div> 
+    </div>
+</div>
     <script src="app.js" defer></script>
 </body>
 </html>

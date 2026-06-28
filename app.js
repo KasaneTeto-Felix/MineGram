@@ -5,7 +5,15 @@
 const SUPABASE_URL = "https://tixjlrflmthhgfrmxrcw.supabase.co"; 
 const SUPABASE_ANON_KEY = "sb_publishable_Wb9GS5ZO1kI9QFS6x2mnBA_4-aZn5ow"; 
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const ADMIN_ID = "6e096c43-30ad-4955-baf5-d679f282c90d";
+
+// Ganti inisialisasi yang lama dengan ini:
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        persistSession: true, // WAJIB untuk menjaga sesi di Android/Acode
+        autoRefreshToken: true
+    }
+});
 
 // DOM ELEMENTS
 const btnLogin = document.getElementById('btn-login');
@@ -25,7 +33,7 @@ const registerFields = document.getElementById('register-fields');
 const btnModalSubmit = document.getElementById('btn-modal-submit');
 const toggleAuthText = document.getElementById('toggle-auth-text');
 
-let currentUser = null;
+let User = null;
 let userProfile = null;
 let isLoginMode = true;
 
@@ -35,20 +43,61 @@ function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
 }
 
-// INIT
-// Di dalam file app.js, cari bagian ini:
+/// Pastikan bagian ini ada di app.js lu
 document.addEventListener('DOMContentLoaded', async () => {
-    await checkUserSession(); 
-    loadFeed();               
-
-    if (btnClosePost) {
-        btnClosePost.addEventListener('click', () => {
-            postModal.style.display = 'none'; // Sembunyiin modal
-            resetNav(); // Balikin nav ke Home
-        });
+    const btnSubmitPost = document.getElementById('btn-submit-post');
+    if (btnSubmitPost) {
+        btnSubmitPost.addEventListener('click', handleCreatePost);
     }
-    // -----------------------------
+    // 1. Pasang semua Event Listener terlebih dahulu
+    btnClosePost.addEventListener('click', () => {
+        postModal.style.display = 'none';
+        resetNav(); // Reset nav ke home
+    });
+
+    postImageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            fileNamePreview.textContent = file.name; 
+        } else {
+            fileNamePreview.textContent = "No file";
+        }
+    });
+
+    // 2. Sekarang baru jalankan logic loading & fetch
+    // (Ini dipisah supaya tidak tersangkut di dalam event listener di atas)
+    showLoading();
+
+    try {
+        // Load semuanya secara paralel agar cepat
+        await Promise.all([
+            checkUserSession(), // Load Sesi & Profil
+            loadFeed()          // Load Postingan
+        ]);
+
+        // Setelah semuanya ready, update UI spesifik
+        setupAdminNav(); 
+        console.log("Semua komponen berhasil dimuat!");
+        
+    } catch (err) {
+        console.error("Gagal memuat aplikasi:", err);
+    } finally {
+        // Hilangkan loading hanya setelah semuanya selesai
+        hideLoading();
+    }
 });
+
+async function handleAuthSuccess(user) {
+    User = user;
+    const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+    userProfile = profile;
+    updateAuthUI(true);
+    setupAdminNav();
+}
 
 document.querySelector('.bottom-nav').addEventListener('click', (e) => {
     const targetItem = e.target.closest('.nav-item');
@@ -71,9 +120,10 @@ document.querySelector('.bottom-nav').addEventListener('click', (e) => {
 
         case 'post':
             const postModal = document.getElementById('post-modal');
-            if (!currentUser) {
+            if (!User) {
                 showNotification("Login Terlebih Dahulu!");
                 handleAuthAction();
+                resetNav();
             } else if (postModal) {
                 postModal.style.display = 'flex';
             } else {
@@ -81,11 +131,20 @@ document.querySelector('.bottom-nav').addEventListener('click', (e) => {
             }
             break;
 
+        // ... di dalam switch(action) { ... }
+        case 'admin':
+        // Lu bisa arahin ke halaman admin atau munculin modal
+            showNotification("Welcome, Admin!") ;
+            openAdminPanel();
+            // window.location.href = '/admin-panel.html';
+            break;
+
         case 'profile':
             console.log("Tombol Profile diklik!"); 
-            if (!currentUser) {
+            if (!User) {
                 showNotification("Login Terlebih Dahulu");
                 handleAuthAction();
+                resetNav();
             } else {
                 // FIX: Panggil function-nya di sini!
                 openEditProfile();
@@ -96,7 +155,11 @@ document.querySelector('.bottom-nav').addEventListener('click', (e) => {
 
 // AUTH
 function handleAuthAction() { isLoginMode = true; switchAuthMode(); authModal.style.display = 'flex'; }
-btnCloseModal.addEventListener('click', () => { authModal.style.display = 'none'; });
+
+btnCloseModal.addEventListener('click', () => { 
+    authModal.style.display = 'none'; 
+    resetNav(); // <--- TAMBAHIN INI: Biar nav balik ke Home pas modal ditutup
+});
 
 function switchAuthMode() {
     modalTitle.textContent = isLoginMode ? "Minecraft Sign In" : "Create New Player";
@@ -126,11 +189,18 @@ authForm.addEventListener('submit', async (e) => {
 async function checkUserSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
-        currentUser = session.user;
-        const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
+        User = session.user;
+        const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', User.id)
+            .single();
         userProfile = profile;
         updateAuthUI(true);
-    } else updateAuthUI(false);
+        setupAdminNav();
+    } else {
+        updateAuthUI(false);
+    }
 }
 
 function updateAuthUI(isLoggedIn) {
@@ -138,7 +208,7 @@ function updateAuthUI(isLoggedIn) {
         const avatarSrc = userProfile?.avatar_url || `https://minotar.net/helm/${userProfile?.minecraft_username || 'Steve'}/100.png`;
         authButtonsDiv.innerHTML = `<div style="display: flex; align-items: center; gap: 10px;"><img src="${avatarSrc}" class="avatar" style="width:30px; height:30px; margin:0;"><span><strong>${userProfile?.username}</strong></span><button id="btn-logout" class="mc-button-secondary" style="padding: 5px 10px;">Logout</button></div>`;
         document.getElementById('btn-logout').onclick = () => supabaseClient.auth.signOut().then(() => window.location.reload());
-        authModal.style.display = 'none';
+        if (authModal) authModal.style.display = 'none';
     } else {
         authButtonsDiv.innerHTML = `<button id="btn-login" class="mc-button">Login / Register</button>`;
         document.getElementById('btn-login').onclick = handleAuthAction;
@@ -147,7 +217,7 @@ function updateAuthUI(isLoggedIn) {
 
 // Ganti fungsi lama dengan ini di app.js
 async function handleCreatePost() {
-    const content = postContent.value.trim();
+    const content = postContent.value.trim(); // Ambil file
     if (!content) return showNotification("Isi text dulu bray!", "error");
     
     btnSubmitPost.disabled = true;
@@ -158,7 +228,7 @@ async function handleCreatePost() {
     
     // Tetap upload gambar di client-side (karena file-nya ada di browser)
     if (imageFile) {
-        const fileName = `${currentUser.id}_${Date.now()}.${imageFile.name.split('.').pop()}`;
+        const fileName = `${User.id}_${Date.now()}.${imageFile.name.split('.').pop()}`;
         const { data, error } = await supabaseClient.storage.from('post-images').upload(fileName, imageFile);
         
         if (error) { 
@@ -196,32 +266,44 @@ async function handleCreatePost() {
 
 // FEED & INTERACTION
 async function loadFeed() {
+    //showLoading();
     const feedContainer = document.getElementById('feed-container');
     feedContainer.innerHTML = '<div class="loading">Memuat feed...</div>';
     
-    const { data: posts, error } = await supabaseClient
+    // 1. Fetch data dulu
+    let { data: posts, error } = await supabaseClient
         .from('posts')
         .select(`
             id, created_at, content, image_url,
             profiles!posts_user_id_fkey (username, avatar_url, is_verified)
         `)
         .order('created_at', { ascending: false });
+     // query = query.order('created_at', { ascending: false });
+      // query = query.limit(6);
 
-    feedContainer.innerHTML = '';
-
+    // 2. Cek error di sini, SEBELUM melakukan looping
     if (error) {
-        console.error("DEBUG ERROR FEED:", error); // <-- LIHAT INI DI CONSOLE
-        feedContainer.innerHTML = `Gagal memuat: ${error.message}`;
+        console.error("DEBUG ERROR FEED:", error);
+        feedContainer.innerHTML = `<div style="color:red; padding:20px;">Gagal memuat: ${error.message}</div>`;
+        hideLoading();
         return;
     }
 
+    // Pakai (posts || []) biar kalau null dia jadi array kosong []
+    posts = (posts || []).slice(0, 6);
+
+    // 3. Bersihkan container setelah data sukses di-load
+    feedContainer.innerHTML = '';
+
+    // 4. Looping cuma SATU KALI
     for (const post of posts) {
+        // Fetch count secara efisien atau gunakan join jika memungkinkan
         const { count: likesCount } = await supabaseClient.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', post.id);
         const { count: commentsCount } = await supabaseClient.from('comments').select('*', { count: 'exact', head: true }).eq('post_id', post.id);
         
         let isLiked = false;
-        if (currentUser) {
-            const { data: likeData } = await supabaseClient.from('likes').select('id').eq('post_id', post.id).eq('user_id', currentUser.id).maybeSingle();
+        if (User) {
+            const { data: likeData } = await supabaseClient.from('likes').select('id').eq('post_id', post.id).eq('user_id', User.id).maybeSingle();
             if (likeData) isLiked = true;
         }
 
@@ -229,9 +311,10 @@ async function loadFeed() {
         card.className = 'post-card';
         const isVerified = post.profiles?.is_verified;
         const badge = isVerified ? `
-<svg style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" viewBox="0 0 24 24" fill="#007bff">
-    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-</svg>` : '';
+            <svg style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" viewBox="0 0 24 24" fill="#007bff">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>` : '';
+            
         card.innerHTML = `
             <div class="post-header">
                 <img src="${post.profiles?.avatar_url || 'https://minotar.net/helm/Steve/100.png'}" class="avatar">
@@ -242,7 +325,7 @@ async function loadFeed() {
             
             <div class="post-footer" style="padding: 10px; display: flex; gap: 15px;">
                 <button class="action-btn" onclick="handleLike('${post.id}', this)" style="background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:5px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="${isLiked ? '#ff0000' : 'none'}" stroke="${isLiked ? '#ff0000' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="${isLiked ? '#ff0000' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                     <span>${likesCount || 0}</span>
                 </button>
                 <button class="action-btn" onclick="toggleCommentSection('${post.id}')" style="background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:5px;">
@@ -262,22 +345,26 @@ async function loadFeed() {
             </div>
         `;
         feedContainer.appendChild(card);
-        loadComments(post.id);
+        
+        // Load comment untuk post ini
+        await loadComments(post.id);
     }
+    
+    //hideLoading();
 }
 
 // LIKES & COMMENTS LOGIC
 async function handleLike(postId, btn) {
-    if (!currentUser) return showNotification("Login dulu bray!");
+    if (!User) return showNotification("Login dulu bray!");
     const svg = btn.querySelector('svg');
     const span = btn.querySelector('span');
-    const { data: existingLike } = await supabaseClient.from('likes').select('id').eq('post_id', postId).eq('user_id', currentUser.id).maybeSingle();
+    const { data: existingLike } = await supabaseClient.from('likes').select('id').eq('post_id', postId).eq('user_id', User.id).maybeSingle();
 
     if (existingLike) {
         await supabaseClient.from('likes').delete().eq('id', existingLike.id);
         svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor');
     } else {
-        await supabaseClient.from('likes').insert([{ post_id: postId, user_id: currentUser.id }]);
+        await supabaseClient.from('likes').insert([{ post_id: postId, user_id: User.id }]);
         svg.setAttribute('fill', '#ff0000'); svg.setAttribute('stroke', '#ff0000');
     }
     const { count } = await supabaseClient.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', postId);
@@ -288,9 +375,9 @@ async function submitComment(postId) {
     const input = document.getElementById(`comment-input-${postId}`);
     const content = input.value.trim();
     if (!content) return showNotification("Isi komennya bray!");
-    if (!currentUser) return showNotification("Login dulu buat komen!");
+    if (!User) return showNotification("Login dulu buat komen!");
 
-    const { error } = await supabaseClient.from('comments').insert([{ post_id: postId, user_id: currentUser.id, content }]);
+    const { error } = await supabaseClient.from('comments').insert([{ post_id: postId, user_id: User.id, content }]);
     if (error) { showNotification("Gagal kirim: " + error.message); } 
     else { 
         input.value = ""; 
@@ -373,6 +460,8 @@ function openEditProfile() {
     if (modal) {
         modal.style.setProperty('display', 'flex', 'important');
         modal.style.zIndex = '999999'; // Pastikan paling depan
+        const usernameInput = document.getElementById('edit-username');
+        if (usernameInput) usernameInput.value = userProfile?.username || '';
         console.log("Modal display sudah di-set ke flex!");
         // modal.style.display = 'flex';
         // Isi Data
@@ -397,9 +486,13 @@ function closeEditProfile() {
 // Simpan Data
 async function saveProfile() {
     const btnSave = document.querySelector('.btn-save');
-    btnSave.disabled = true; btnSave.textContent = "Menyimpan...";
+    if (btnSave) {
+        btnSave.disabled = true; 
+        btnSave.textContent = "Menyimpan...";
+    }
 
     try {
+        // 1. Update ke Supabase
         const { error } = await supabaseClient
             .from('profiles')
             .update({
@@ -409,14 +502,30 @@ async function saveProfile() {
                 avatar_url: document.getElementById('profile-preview').src,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', currentUser.id);
+            .eq('id', User.id);
 
         if (error) throw error;
+
+        // 2. Update data lokal agar UI berubah
+        userProfile = {
+            ...userProfile,
+            username: document.getElementById('edit-username').value,
+            minecraft_username: document.getElementById('edit-mc-username').value,
+            bio: document.getElementById('edit-bio').value,
+            avatar_url: document.getElementById('profile-preview').src
+        };
+        
         showNotification("Profil berhasil diperbarui!");
-        location.reload();
+        resetNav();
+        // Tutup modal setelah sukses
+        document.getElementById('profile-modal').style.display = 'none';
+        
     } catch (err) {
         showNotification("Gagal: " + err.message);
-        btnSave.disabled = false; btnSave.textContent = "Selesai";
+        if (btnSave) {
+            btnSave.disabled = false; 
+            btnSave.textContent = "Selesai";
+        }
     }
 }
 
@@ -457,9 +566,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Handle Crop
 async function cropAndUpload() {
     // Gunakan window.cropperInstance biar sinkron sama yang diinisialisasi
-    const currentCropper = window.cropperInstance;
+    const activeCropper = window.cropperInstance;
     
-    if (!currentCropper) {
+    if (!Cropper) {
         console.error("Gagal save: Cropper instance tidak ditemukan!");
         showNotification("Gagal: Cropper belum aktif.");
         return;
@@ -467,13 +576,13 @@ async function cropAndUpload() {
 
     console.log("Memulai proses crop & upload...");
 
-    currentCropper.getCroppedCanvas().toBlob(async (blob) => {
+    activeCropper.getCroppedCanvas().toBlob(async (blob) => {
         if (!blob) {
             console.error("Gagal buat blob!");
             return;
         }
 
-        const fileName = `${currentUser.id}_${Date.now()}.png`;
+        const fileName = `${User.id}_${Date.now()}.png`;
         
         // Upload ke Supabase
         const { error } = await supabaseClient.storage
@@ -497,28 +606,34 @@ async function cropAndUpload() {
         document.getElementById('profile-modal').style.display = 'flex';
         
         // Cleanup
-        currentCropper.destroy();
+        Cropper.destroy();
         window.cropperInstance = null;
         console.log("Sukses update avatar!");
     });
 }
 
-function showNotification(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <span>${type === 'success' ? '✅' : '❌'}</span>
-        <span>${message}</span>
-    `;
-    
-    container.appendChild(toast);
-    
-    // Auto-remove setelah 3 detik
+let isNotificationActive = false; // Flag penanda status
+
+function showNotification(message) {
+    // 1. CEK: Kalau lagi aktif, langsung stop (return)
+    if (isNotificationActive) {
+        console.warn("Notif lagi jalan, skip!");
+        return; 
+    }
+
+    // 2. AKTIFKAN: Set flag ke true
+    isNotificationActive = true;
+
+    // 3. JALANIN LOGIC NOTIF LU
+    const notif = document.getElementById('notification-id'); // Sesuaikan ID lu
+    notif.textContent = message;
+    notif.style.display = 'block';
+
+    // 4. RESET: Balikin ke false setelah durasi selesai
     setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+        notif.style.display = 'none';
+        isNotificationActive = false; // Penting! Biar bisa dipake lagi nanti
+    }, 3000); // 3 detik durasi
 }
 
 // Reset Nav
@@ -526,4 +641,161 @@ function resetNav() {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     const homeBtn = document.querySelector('[data-action="home"]');
     if (homeBtn) homeBtn.classList.add('active');
+}
+
+// --- ADMIN MODULE (Pterodactyl Style) ---
+
+function setupAdminNav() {
+    if (User && User.id === ADMIN_ID) {
+        const nav = document.querySelector('.bottom-nav');
+        if (document.querySelector('[data-action="admin"]')) return;
+        const adminBtn = document.createElement('div');
+        adminBtn.className = 'nav-item';
+        adminBtn.setAttribute('data-action', 'admin');
+        adminBtn.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg><span>Admin</span>`;
+        nav.appendChild(adminBtn);
+    }
+}
+
+/**
+ * OPEN ADMIN PANEL - FULL VERSION (PRO UI)
+ * Menggunakan struktur Card untuk mobile agar tidak "padat"
+ */
+async function openAdminPanel(tab = 'dashboard') {
+    if (!User || User.id !== ADMIN_ID) return;
+
+    const modal = document.getElementById('admin-modal');
+    modal.style.display = 'flex';
+    const contentDiv = document.getElementById('admin-content');
+    
+    // TAMBAHKAN tombol close di sini
+    contentDiv.innerHTML = `
+        <div class="pt-tabs" style="margin-bottom: 20px; display:flex; gap:10px;">
+            <button class="pt-tab-btn ${tab === 'dashboard' ? 'active' : ''}" onclick="openAdminPanel('dashboard')">Dashboard</button>
+            <button class="pt-tab-btn ${tab === 'users' ? 'active' : ''}" onclick="openAdminPanel('users')">Users</button>
+            <button class="pt-tab-btn ${tab === 'posts' ? 'active' : ''}" onclick="openAdminPanel('posts')">Posts</button>
+        </div>
+        <div id="tab-data">Memuat data...</div>
+    `;
+
+    const dataContainer = document.getElementById('tab-data');
+
+    try {
+        // --- TAB DASHBOARD ---
+        if (tab === 'dashboard') {
+            const { count: users } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true });
+            const { count: posts } = await supabaseClient.from('posts').select('*', { count: 'exact', head: true });
+            dataContainer.innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:10px;">
+                    <div style="background:#1c2125; padding:15px; border-radius:6px; border:1px solid #282c31;">
+                        <small style="color:#888;">Total Users</small>
+                        <div style="font-size:24px; color:#fff; font-weight:bold;">${users}</div>
+                    </div>
+                    <div style="background:#1c2125; padding:15px; border-radius:6px; border:1px solid #282c31;">
+                        <small style="color:#888;">Total Posts</small>
+                        <div style="font-size:24px; color:#fff; font-weight:bold;">${posts}</div>
+                    </div>
+                </div>
+            `;
+        } 
+        
+        // --- TAB USERS (Mobile Friendly) ---
+        else if (tab === 'users') {
+            const { data, error } = await supabaseClient.from('profiles').select('id, username, minecraft_username');
+            if (error) throw error;
+            
+            dataContainer.innerHTML = `
+                <div class="pt-user-list" style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+                    ${data.map(u => `
+                        <div class="pt-user-row" style="background:#1c2125; border:1px solid #282c31; padding:12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <div class="pt-user-info" style="display:flex; flex-direction:column; gap:2px;">
+                                <span style="color:#fff; font-weight:500;">${u.username}</span>
+                                <small style="color:#007bff; font-size:11px;">MC: ${u.minecraft_username}</small>
+                            </div>
+                            <button onclick="adminDeleteUser('${u.id}')" class="pt-btn-danger">Hapus</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // --- TAB POSTS (Mobile Friendly) ---
+        else if (tab === 'posts') {
+            const { data, error } = await supabaseClient
+                .from('posts')
+                .select(`id, content, profiles!posts_user_id_fkey(username)`)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            dataContainer.innerHTML = `
+                <div class="pt-user-list" style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+                    ${data.map(p => `
+                        <div class="pt-user-row" style="background:#1c2125; border:1px solid #282c31; padding:12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="overflow:hidden; margin-right:10px;">
+                                <div style="color:#fff; font-weight:500;">${p.profiles?.username || 'Anon'}</div>
+                                <small style="color:#888; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:180px;">${p.content}</small>
+                            </div>
+                            <button onclick="adminDeletePost('${p.id}')" class="pt-btn-danger">Delete</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    } catch (err) {
+        dataContainer.innerHTML = `<div style="color:#ff8e8e; padding:20px;">Error: ${err.message}</div>`;
+    }
+}
+
+async function adminDeletePost(postId) {
+    showConfirm("Yakin mau hapus post ini, bray?", async () => {
+        try {
+            const { error } = await supabaseClient.rpc('admin_delete_post', { p_post_id: postId });
+            if (error) throw error;
+            showNotification("Post berhasil dihapus!", "success");
+            openAdminPanel('posts'); 
+            loadFeed(); 
+        } catch (err) {
+            showNotification("Gagal hapus: " + err.message, "error");
+        }
+    });
+}
+
+async function adminDeleteUser(userId) {
+    showConfirm("PERINGATAN: Hapus user ini? Semua datanya bakal ilang!", async () => {
+        try {
+            const { error } = await supabaseClient.rpc('admin_delete_user', { p_user_id: userId });
+            if (error) throw error;
+            showNotification("User berhasil dihapus!", "success");
+            openAdminPanel('users');
+        } catch (err) {
+            showNotification("Gagal hapus user: " + err.message, "error");
+        }
+    });
+}
+
+function showConfirm(message, onConfirmAction) {
+    const modal = document.getElementById('confirm-modal');
+    document.getElementById('confirm-msg').textContent = message;
+    modal.style.display = 'flex';
+    document.getElementById('btn-yes').onclick = () => { modal.style.display = 'none'; onConfirmAction(); };
+    document.getElementById('btn-no').onclick = () => { modal.style.display = 'none'; };
+}
+
+// Panggil ini pas mulai proses
+function showLoading() {
+    document.getElementById('loading-overlay').style.display = 'flex';
+}
+
+// Panggil ini pas proses selesai
+function hideLoading() {
+    document.getElementById('loading-overlay').style.display = 'none';
+}
+
+function closeAdminPanel() {
+    const adminModal = document.getElementById('admin-modal');
+    if (adminModal) {
+        adminModal.style.display = 'none'; // Sembunyiin modal
+    }
+    resetNav(); // <--- INI BIAR BALIK KE HOME
+    console.log("Admin Panel ditutup, Navigasi di-reset.");
 }

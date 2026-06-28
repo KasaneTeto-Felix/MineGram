@@ -765,22 +765,39 @@ input:focus {
     to { opacity: 1; transform: translateY(0); }
 }
 
-.toast {
-    background: #1a1a1a;
-    color: #fff;
-    padding: 15px 25px;
-    margin-bottom: 10px;
+#notification-id {
+    /* Posisi & Layout */
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%); /* Biar pas di tengah */
+    z-index: 9999;
+    
+    /* Style Visual */
+    background: #1e1e1e; /* Dark background */
+    color: #ffffff;
+    padding: 14px 24px;
     border-radius: 8px;
-    border: 1px solid #444;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    animation: slideIn 0.3s ease-out;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    border: 1px solid #333;
+    border-left: 5px solid #007bff; /* Aksen warna biru biar cakep */
+    
+    /* Font */
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    
+    /* Animasi (Opsional: biar smooth munculnya) */
+    animation: fadeInOut 3s ease-in-out;
 }
 
-.toast.success { border-left: 5px solid #55ff55; }
-.toast.error { border-left: 5px solid #ff4444; }
+/* Biar pas muncul ada efek fading dikit */
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translate(-50%, -20px); }
+    15% { opacity: 1; transform: translate(-50%, 0); }
+    85% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -20px); }
+}
 
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
@@ -814,3 +831,231 @@ input:focus {
 }
 
 /* Pastikan TIDAK ADA property 'backdrop-filter: blur' di sini */
+/* Pterodactyl Minimalist Dashboard */
+/* Pterodactyl Minimalist Dashboard */
+#admin-modal {
+    background: rgba(14, 16, 18, 0.95);
+    backdrop-filter: blur(5px);
+}
+.admin-card {
+    background: #1c2125;
+    border: 1px solid #2f363c;
+    border-radius: 4px;
+    width: 90%;
+    max-width: 800px;
+    padding: 20px;
+    color: #d0d0d0;
+}
+
+/* Styling Tab Navigation */
+.pt-tabs { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 20px; 
+    border-bottom: 1px solid #282c31; 
+    padding-bottom: 10px; 
+}
+
+.pt-tab-btn { 
+    background: #1c2125; 
+    border: 1px solid #282c31; 
+    color: #888; 
+    padding: 8px 16px; 
+    border-radius: 4px; 
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.pt-tab-btn.active { 
+    background: #007bff; 
+    color: white; 
+    border-color: #007bff; 
+}
+
+/* Styling List/Table */
+.pt-item { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    background: #1c2125; 
+    padding: 12px; 
+    border-bottom: 1px solid #282c31;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+/* --- Pro Admin Styling --- */
+.pt-modal-overlay {
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; 
+    width: 100%; height: 100%; 
+    background: rgba(0, 0, 0, 0.85); 
+    z-index: 999999; 
+    justify-content: center; 
+    align-items: center;
+}
+
+.pt-modal-card {
+    background: #15191c; /* Warna background panel */
+    border: 1px solid #282c31; /* Border halus */
+    border-radius: 8px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    color: #d0d0d0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.pt-btn-confirm {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pt-btn-cancel {
+    background: #252b30;
+    color: #888;
+    border: 1px solid #333;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pt-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px;
+}
+
+.pt-btn-danger {
+    /* Style dasar: Muted/Gelap */
+    background: transparent;
+    border: 1px solid #7f1d1d; /* Merah gelap */
+    color: #fca5a5; /* Merah muda lembut */
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease; /* Transisi smooth */
+}
+
+.pt-btn-danger:hover {
+    /* Style saat di-hover: Merah solid profesional */
+    background: #991b1b;
+    color: #ffffff;
+    border-color: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+.pt-btn-danger:active {
+    transform: scale(0.95); /* Efek klik */
+}
+
+/* Card List untuk User */
+.pt-user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.pt-user-row {
+    background: #1c2125;
+    border: 1px solid #282c31;
+    padding: 12px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pt-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pt-user-info span {
+    font-size: 14px;
+    color: #fff;
+}
+
+.pt-user-info small {
+    font-size: 11px;
+    color: #007bff; /* Warna biru buat MC username */
+}
+
+#loading-overlay {
+    position: fixed;
+    top: 0; left: 0; 
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7); /* Lebih gelap dikit */
+    backdrop-filter: blur(8px);
+    display: none; 
+    justify-content: center;
+    align-items: center;
+    
+    /* TAMBAHAN BIAR GAK BISA DIKLIK */
+    z-index: 9999999; /* Pastikan paling atas dari segala elemen */
+    pointer-events: auto; /* Menangkap semua klik di layar */
+    cursor: wait; /* Kursor berubah jadi loading */
+}
+
+/* Spinner */
+.spinner {
+    width: 50px; height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #007bff; /* Warna hijau Minecraft */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+#loading-text::after {
+    content: '';
+    animation: loading-dots 1.5s infinite steps(4, end);
+}
+
+@keyframes loading-dots {
+    0% { content: '.'; }
+    25% { content: '..'; }
+    50% { content: '...'; }
+    75% { content: '....'; }
+    100% { content: '.'; }
+}
+
+.loader-box {
+    display: flex;
+    flex-direction: column; /* Biar numpuk vertikal */
+    align-items: center;    /* Biar rata tengah horizontal */
+    justify-content: center;
+}
+
+#loading-text {
+    font-style: italic;     /* Efek miring */
+    font-size: 1.2rem;      /* Ukuran biar proporsional */
+    color: white;
+    margin-bottom: 10px;    /* Jarak antara teks dan spinner */
+    font-weight: bold;
+}
+
+/* Animasi titik-titik yang lu minta */
+#loading-text::after {
+    content: '';
+    animation: loading-dots 1.5s infinite steps(4, end);
+}
+
+@keyframes loading-dots {
+    0% { content: '.'; }
+    25% { content: '..'; }
+    50% { content: '...'; }
+    75% { content: '....'; }
+    100% { content: '.'; }
+}
