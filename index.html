@@ -4,8 +4,8 @@
     <meta name="google-site-verification" content="AHPjgFk5NA3HIlaYKwilr0iGcnlMg0OJH0s-jFbjOwM" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FelixMods | Social Media Petualang</title>
-    <link rel="stylesheet" href="style.css">
+    <title>MineGrams | Social Media Petualang</title>
+    <link rel="stylesheet" href="style.css?v=1.1">
     <!-- Panggil CDN Supabase JS Resmi -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -13,6 +13,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css">
     <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="MineGrams" />
+    <link rel="manifest" href="/site.webmanifest" />
 </head>
 <body>
 
@@ -95,19 +101,42 @@
     <!-- Bottom Navigation Bar Ala Instagram -->
     <!-- BOTTOM NAVIGATION BAR (SVG ICONS) -->
 <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav">
-    <a href="#" class="nav-item active" data-action="home" id="nav-home">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-        <span class="nav-text">Home</span>
-    </a>
-    <a href="#" class="nav-item" data-action="post" id="nav-add-post">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span class="nav-text">Post</span>
-    </a>
-    <a href="#" class="nav-item" data-action="profile" data-target="profile-modal">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-        <span class="nav-text">Profile</span>
-    </a>
+  <!-- Wrapper utama: Ini bakal jadi Sidebar di Desktop & Bottom-Nav di Mobile -->
+<nav id="main-nav" class="nav-wrapper">
+    
+    <!-- Bagian Header (Logo & Toggle Button untuk Desktop) -->
+    <div class="nav-header">
+        <a href="/" class="logo-link">
+            <img src="minegram.png" alt="MineGram" class="nav-logo">
+            <span class="brand-text">MineGram</span>
+        </a>
+        <!-- Tombol garis tiga untuk buka/tutup sidebar di desktop -->
+        <button id="toggle-sidebar" class="sidebar-toggle-btn">☰</button>
+    </div>
+
+    <!-- Bagian Auth (Login / Profile) -->
+    <div id="auth-buttons" class="nav-auth">
+        <!-- JS bakal inject konten di sini -->
+    </div>
+
+    <!-- Bagian Navigasi (Bottom-Nav di HP) -->
+    <div class="nav-links bottom-nav">
+        <a href="#" class="nav-item active" data-action="home" id="nav-home">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span class="nav-text">Home</span>
+        </a>
+        
+        <a href="#" class="nav-item" data-action="post" id="nav-add-post">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span class="nav-text">Post</span>
+        </a>
+        
+        <!-- INI DATA TARGETNYA UDAH BENER -->
+        <a href="#" class="nav-item" data-action="profile" data-target="profile-modal" id="nav-profile">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span class="nav-text">Profile</span>
+        </a>
+    </div>
 </nav>
 
 <!-- 1. Modal Utama Edit Profil -->
