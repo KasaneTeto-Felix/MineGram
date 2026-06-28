@@ -145,7 +145,7 @@ function updateAuthUI(isLoggedIn) {
     }
 }
 
-// POSTING
+// Ganti fungsi lama dengan ini di app.js
 async function handleCreatePost() {
     const content = postContent.value.trim();
     if (!content) return showNotification("Isi text dulu bray!", "error");
@@ -156,6 +156,7 @@ async function handleCreatePost() {
     let uploadedImageUrl = null;
     const imageFile = postImageInput.files[0];
     
+    // Tetap upload gambar di client-side (karena file-nya ada di browser)
     if (imageFile) {
         const fileName = `${currentUser.id}_${Date.now()}.${imageFile.name.split('.').pop()}`;
         const { data, error } = await supabaseClient.storage.from('post-images').upload(fileName, imageFile);
@@ -163,27 +164,29 @@ async function handleCreatePost() {
         if (error) { 
             showNotification("Gagal upload: " + error.message, "error"); 
             btnSubmitPost.disabled = false; 
+            btnSubmitPost.textContent = "Post 🚀";
             return; 
         }
         uploadedImageUrl = supabaseClient.storage.from('post-images').getPublicUrl(fileName).data.publicUrl;
     }
 
-    const { error } = await supabaseClient.from('posts').insert([{ 
-        user_id: currentUser.id, 
-        content, 
-        image_url: uploadedImageUrl 
-    }]);
+    // PAKAI RPC: Kirim data ke fungsi SQL yang kita buat tadi
+    const { error } = await supabaseClient.rpc('secure_create_post', { 
+        p_content: content, 
+        p_image_url: uploadedImageUrl 
+    });
 
     if (error) { 
+        console.error("RPC Error:", error);
         showNotification("Gagal post: " + error.message, "error"); 
     } else { 
         postModal.style.display = 'none'; 
         postContent.value = ""; 
-        postImageInput.value = ""; // Bersihin input file
-        fileNamePreview.textContent = "No file"; // Reset label file
+        postImageInput.value = ""; 
+        fileNamePreview.textContent = "No file"; 
         
         loadFeed(); 
-        resetNav(); // PANGGIL INI BIAR NAV BALIK KE HOME
+        resetNav(); 
         showNotification("Berhasil di-post, bray! 🚀", "success");
     }
     
