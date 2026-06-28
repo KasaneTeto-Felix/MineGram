@@ -206,8 +206,21 @@ async function checkUserSession() {
 function updateAuthUI(isLoggedIn) {
     if (isLoggedIn) {
         const avatarSrc = userProfile?.avatar_url || `https://minotar.net/helm/${userProfile?.minecraft_username || 'Steve'}/100.png`;
-        authButtonsDiv.innerHTML = `<div style="display: flex; align-items: center; gap: 10px;"><img src="${avatarSrc}" class="avatar" style="width:30px; height:30px; margin:0;"><span><strong>${userProfile?.username}</strong></span><button id="btn-logout" class="mc-button-secondary" style="padding: 5px 10px;">Logout</button></div>`;
+        
+        // Perubahan di sini:
+        // 1. Bungkus avatar dan username dalam div dengan onclick="openEditProfile()"
+        // 2. Tambahkan cursor: pointer biar user tau itu bisa diklik
+        authButtonsDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="openEditProfile()">
+                <img src="${avatarSrc}" class="avatar" style="width:30px; height:30px; margin:0;">
+                <span><strong>${userProfile?.username}</strong></span>
+            </div>
+            <button id="btn-logout" class="mc-button-secondary" style="padding: 5px 10px; margin-left: 10px;">Logout</button>
+        `;
+        
+        // Logika logout tetap aman
         document.getElementById('btn-logout').onclick = () => supabaseClient.auth.signOut().then(() => window.location.reload());
+        
         if (authModal) authModal.style.display = 'none';
     } else {
         authButtonsDiv.innerHTML = `<button id="btn-login" class="mc-button">Login / Register</button>`;
@@ -310,10 +323,9 @@ async function loadFeed() {
         const card = document.createElement('div');
         card.className = 'post-card';
         const isVerified = post.profiles?.is_verified;
+        // Ganti bagian ini di dalam loop loadFeed
         const badge = isVerified ? `
-            <svg style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" viewBox="0 0 24 24" fill="#007bff">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-            </svg>` : '';
+            <img src="verified.png" style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" alt="Verified">` : '';
             
         card.innerHTML = `
             <div class="post-header">
@@ -414,10 +426,9 @@ async function loadComments(postId) {
             
             // Cek verified untuk user komentar ini
             const isVerified = c.profiles?.is_verified;
+            // Ganti bagian ini di dalam loop loadFeed
             const badge = isVerified ? `
-                <svg style="width:14px; height:14px; margin-left:3px; vertical-align:middle;" viewBox="0 0 24 24" fill="#007bff">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                </svg>` : '';
+                <img src="verified.png" style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" alt="Verified">` : '';            
             
             return `
                 <div style="margin:10px 0; display:flex; align-items:flex-start; gap:10px;">
@@ -582,13 +593,15 @@ async function cropAndUpload() {
             return;
         }
 
-        const fileName = `${User.id}_${Date.now()}.png`;
+        const fileName = `${User.id}.png`;
         
         // Upload ke Supabase
         const { error } = await supabaseClient.storage
             .from('avatars')
-            .upload(fileName, blob);
-
+            .upload(fileName, blob, {
+              cacheControl: '3600',
+              upsert: true
+            });
         if (error) {
             console.error("Error upload:", error);
             showNotification("Gagal upload: " + error.message);
