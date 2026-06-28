@@ -300,7 +300,6 @@ async function loadComments(postId) {
     const list = document.getElementById(`comments-list-${postId}`);
     if (!list) return;
     
-    // Kita tambahin avatar_url & minecraft_username ke query
     const { data: comments, error } = await supabaseClient
         .from('comments')
         .select(`
@@ -319,16 +318,16 @@ async function loadComments(postId) {
     if (comments.length === 0) {
         list.innerHTML = `<p style="color:#666; font-size:0.8rem;">Belum ada komen, tulis yang pertama!</p>`;
     } else {
-        // const isVerified = c.profiles?.is_verified;
-        // const badge = isVerified ? `<span style="color:#55ff55; font-size:0.7rem; margin-left:3px;">✔</span>` : '';
-        const isVerified = post.profiles?.is_verified;
-        const badge = isVerified ? `
-<svg style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" viewBox="0 0 24 24" fill="#007bff">
-    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-</svg>` : '';
+        // FIX: Pindahkan logika badge ke dalam map supaya pakai data 'c' (comment)
         list.innerHTML = comments.map(c => {
-            // Logika: Pakai avatar_url kalau ada, kalau nggak pakai minotar
             const avatarSrc = c.profiles?.avatar_url || `https://minotar.net/helm/${c.profiles?.minecraft_username || 'Steve'}/100.png`;
+            
+            // Cek verified untuk user komentar ini
+            const isVerified = c.profiles?.is_verified;
+            const badge = isVerified ? `
+                <svg style="width:14px; height:14px; margin-left:3px; vertical-align:middle;" viewBox="0 0 24 24" fill="#007bff">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>` : '';
             
             return `
                 <div style="margin:10px 0; display:flex; align-items:flex-start; gap:10px;">
