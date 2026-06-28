@@ -517,7 +517,10 @@ function openEditProfile() {
         modal.style.setProperty('display', 'flex', 'important');
         modal.style.zIndex = '999999'; // Pastikan paling depan
         const usernameInput = document.getElementById('edit-username');
-        if (usernameInput) usernameInput.value = userProfile?.username || '';
+        if (usernameInput) {
+            usernameInput.setAttribute('maxlength', '15'); // <--- BATASAN DI SINI
+            usernameInput.value = userProfile?.username || '';
+        }
         console.log("Modal display sudah di-set ke flex!");
         // modal.style.display = 'flex';
         // Isi Data
@@ -541,11 +544,21 @@ function closeEditProfile() {
 
 // Simpan Data
 async function saveProfile() {
+    const username = document.getElementById('edit-username').value.trim();
     const btnSave = document.querySelector('.btn-save');
     if (btnSave) {
         btnSave.disabled = true; 
         btnSave.textContent = "Menyimpan...";
     }
+
+    if (username.length > 15) {
+        showNotification("Username kepanjangan bray! Max 15 karakter.");
+        return;
+    }
+
+    if (!usernameRegex.test(username)) {
+    return showNotification("Username cuma boleh huruf, angka, & underscore!");
+}
 
     try {
         // 1. Update ke Supabase
