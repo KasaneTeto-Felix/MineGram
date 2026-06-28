@@ -287,9 +287,10 @@ async function loadFeed() {
     let { data: posts, error } = await supabaseClient
         .from('posts')
         .select(`
-            id, created_at, content, image_url,
-            profiles!posts_user_id_fkey (username, avatar_url, is_verified)
+            id, created_at, content, image_url, is_pinned,
+           profiles!posts_user_id_fkey (username, avatar_url, is_verified)
         `)
+        .order('is_pinned', { ascending: false, nullsFirst: false }) // <--- BIAR PIN SELALU DI ATAS
         .order('created_at', { ascending: false });
      // query = query.order('created_at', { ascending: false });
       // query = query.limit(6);
@@ -324,6 +325,9 @@ async function loadFeed() {
         card.className = 'post-card';
         const isVerified = post.profiles?.is_verified;
         // Ganti bagian ini di dalam loop loadFeed
+
+        const pinIcon = post.is_pinned ? '📌 ' : ''; // <--- Bikin icon Pin
+
         const badge = isVerified ? `
             <img src="verified.png" style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" alt="Verified">` : '';
             
@@ -389,12 +393,27 @@ async function submitComment(postId) {
     if (!content) return showNotification("Isi komennya bray!");
     if (!User) return showNotification("Login dulu buat komen!");
 
-    const { error } = await supabaseClient.from('comments').insert([{ post_id: postId, user_id: User.id, content }]);
-    if (error) { showNotification("Gagal kirim: " + error.message); } 
-    else { 
-        input.value = ""; 
-        await loadComments(postId); 
-        await updateCommentCount(postId); 
+    // 1. Ekstrak semua mention (regex buat cari @username)
+    const mentionRegex = /@(\w+)/g;
+    const mentions = content.match(mentionRegex);
+    const taggedUsernames = mentions ? [...new Set(mentions.map(m => m.replace('@', '')))] : [];
+
+    // 2. Kirim komen ke database
+    const { error } = await supabaseClient
+        .from('comments')
+        .insert([{ post_id: postId, user_id: User.id, content }]);
+
+    if (error) {
+        showNotification("Gagal kirim: " + error.message);
+    } else {
+        input.value = "";
+        await loadComments(postId);
+        await updateCommentCount(postId);
+
+        // 3. JIKA ADA TAG, PROSES NOTIFIKASI
+        if (taggedUsernames.length > 0) {
+            processMentions(taggedUsernames, postId);
+        }
     }
 }
 
@@ -402,10 +421,11 @@ async function loadComments(postId) {
     const list = document.getElementById(`comments-list-${postId}`);
     if (!list) return;
     
+    // PERBAIKAN: Tambahkan 'id' di select biar c.id nggak undefined
     const { data: comments, error } = await supabaseClient
         .from('comments')
         .select(`
-            content, 
+            id, content, 
             profiles (username, avatar_url, minecraft_username, is_verified)
         `)
         .eq('post_id', postId)
@@ -420,28 +440,53 @@ async function loadComments(postId) {
     if (comments.length === 0) {
         list.innerHTML = `<p style="color:#666; font-size:0.8rem;">Belum ada komen, tulis yang pertama!</p>`;
     } else {
-        // FIX: Pindahkan logika badge ke dalam map supaya pakai data 'c' (comment)
-        list.innerHTML = comments.map(c => {
+        // PERBAIKAN: Pakai Promise.all untuk fetch like count di setiap komentar
+        list.innerHTML = (await Promise.all(comments.map(async (c) => {
             const avatarSrc = c.profiles?.avatar_url || `https://minotar.net/helm/${c.profiles?.minecraft_username || 'Steve'}/100.png`;
-            
-            // Cek verified untuk user komentar ini
             const isVerified = c.profiles?.is_verified;
-            // Ganti bagian ini di dalam loop loadFeed
-            const badge = isVerified ? `
-                <img src="verified.png" style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" alt="Verified">` : '';            
+            const badge = isVerified ? `<img src="verified.png" style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" alt="Verified">` : '';            
+            let isCommentLiked = false;
+            if (User) {
+    // Cek ke DB status like user ini untuk komentar 'c'
+                const { data: userLike } = await supabaseClient
+                    .from('comment_likes')
+                    .select('id')
+                    .eq('comment_id', c.id)
+                    .eq('user_id', User.id)
+                    .maybeSingle();
+                if (userLike) isCommentLiked = true;
+            }
+            // Fetch Like Count
+            const { count: likeCount } = await supabaseClient
+                .from('comment_likes')
+                .select('*', { count: 'exact', head: true })
+                .eq('comment_id', c.id);
             
             return `
-                <div style="margin:10px 0; display:flex; align-items:flex-start; gap:10px;">
-                    <img src="${avatarSrc}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #444;">
-                    <div style="display:flex; flex-direction:column;">
-                        <b style="color:#55ff55; font-size:0.85rem;">${c.profiles?.username || 'Gamer'} ${badge}</b>
-                        <span style="color:#ddd; font-size:0.85rem; word-break:break-word;">${escapeHTML(c.content)}</span>
+            <div style="margin:10px 0; display:flex; align-items:flex-start; gap:10px;">
+                <img src="${avatarSrc}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #444;">
+                <div style="display:flex; flex-direction:column;">
+                    <b style="color:#55ff55; font-size:0.85rem;">${c.profiles?.username || 'Gamer'} ${badge}</b>
+                    <span style="color:#ddd; font-size:0.85rem; word-break:break-word;">${escapeHTML(c.content)}</span>
+                    
+                    <!-- TOMBOL LIKE & REPLY (SVG ICON) -->
+                    <div style="display:flex; gap:12px; margin-top:5px;">
+                        <button class="btn-like-comment" data-comment-id="${c.id}" style="background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:3px; color:#888; font-size:0.75rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="${isCommentLiked ? '#ff0000' : 'none'}" stroke="${isCommentLiked ? '#ff0000' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                <span>${likeCount && likeCount > 0 ? likeCount : 'Like'}</span>
+                        </button>
+                        <button onclick="setReply('${c.profiles?.username || 'User'}', '${postId}')" style="background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:3px; color:#888; font-size:0.75rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6M3 10l6-6"></path></svg>
+                            Reply
+                        </button>
                     </div>
                 </div>
+            </div>
             `;
-        }).join('');
+        }))).join('');
     }
     list.scrollTop = list.scrollHeight;
+    setupLikeListeners(postId);
 }
 
 async function updateCommentCount(postId) {
@@ -681,7 +726,6 @@ async function openAdminPanel(tab = 'dashboard') {
     modal.style.display = 'flex';
     const contentDiv = document.getElementById('admin-content');
     
-    // TAMBAHKAN tombol close di sini
     contentDiv.innerHTML = `
         <div class="pt-tabs" style="margin-bottom: 20px; display:flex; gap:10px;">
             <button class="pt-tab-btn ${tab === 'dashboard' ? 'active' : ''}" onclick="openAdminPanel('dashboard')">Dashboard</button>
@@ -712,9 +756,9 @@ async function openAdminPanel(tab = 'dashboard') {
             `;
         } 
         
-        // --- TAB USERS (Mobile Friendly) ---
+        // --- TAB USERS ---
         else if (tab === 'users') {
-            const { data, error } = await supabaseClient.from('profiles').select('id, username, minecraft_username');
+            const { data, error } = await supabaseClient.from('profiles').select('id, username, minecraft_username, is_verified');
             if (error) throw error;
             
             dataContainer.innerHTML = `
@@ -722,21 +766,24 @@ async function openAdminPanel(tab = 'dashboard') {
                     ${data.map(u => `
                         <div class="pt-user-row" style="background:#1c2125; border:1px solid #282c31; padding:12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
                             <div class="pt-user-info" style="display:flex; flex-direction:column; gap:2px;">
-                                <span style="color:#fff; font-weight:500;">${u.username}</span>
+                                <span style="color:#fff; font-weight:500;">${u.username} ${u.is_verified ? '✅' : ''}</span>
                                 <small style="color:#007bff; font-size:11px;">MC: ${u.minecraft_username}</small>
                             </div>
-                            <button onclick="adminDeleteUser('${u.id}')" class="pt-btn-danger">Hapus</button>
+                            <div style="display:flex; gap:5px;">
+                                <button onclick="toggleVerify('${u.id}', ${!!u.is_verified})" class="pt-btn-primary">${u.is_verified ? 'Unverify' : 'Verify'}</button>
+                                <button onclick="adminDeleteUser('${u.id}')" class="pt-btn-danger">Hapus</button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
             `;
         }
         
-        // --- TAB POSTS (Mobile Friendly) ---
+        // --- TAB POSTS ---
         else if (tab === 'posts') {
             const { data, error } = await supabaseClient
                 .from('posts')
-                .select(`id, content, profiles!posts_user_id_fkey(username)`)
+                .select(`id, content, is_pinned, profiles!posts_user_id_fkey(username)`)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -745,10 +792,13 @@ async function openAdminPanel(tab = 'dashboard') {
                     ${data.map(p => `
                         <div class="pt-user-row" style="background:#1c2125; border:1px solid #282c31; padding:12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
                             <div style="overflow:hidden; margin-right:10px;">
-                                <div style="color:#fff; font-weight:500;">${p.profiles?.username || 'Anon'}</div>
+                                <div style="color:#fff; font-weight:500;">${p.profiles?.username || 'Anon'} ${p.is_pinned ? '📌' : ''}</div>
                                 <small style="color:#888; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:180px;">${p.content}</small>
                             </div>
-                            <button onclick="adminDeletePost('${p.id}')" class="pt-btn-danger">Delete</button>
+                            <div style="display:flex; gap:5px;">
+                                <button onclick="togglePinPost('${p.id}', ${!!p.is_pinned})" class="pt-btn-warning">${p.is_pinned ? 'Unpin' : 'Pin'}</button>
+                                <button onclick="adminDeletePost('${p.id}')" class="pt-btn-danger">Delete</button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -811,4 +861,104 @@ function closeAdminPanel() {
     }
     resetNav(); // <--- INI BIAR BALIK KE HOME
     console.log("Admin Panel ditutup, Navigasi di-reset.");
+}
+
+// Pakai RPC biar tembus blokiran RLS
+async function toggleVerify(userId, currentStatus) {
+    const { error } = await supabaseClient.rpc('admin_toggle_verify', { p_user_id: userId, p_status: !currentStatus });
+    if (error) showNotification("Gagal Verify: " + error.message);
+    else { showNotification("Status Verified diupdate!"); openAdminPanel('users'); }
+}
+
+async function togglePinPost(postId, currentStatus) {
+    const { error } = await supabaseClient.rpc('admin_toggle_pin', { p_post_id: postId, p_status: !currentStatus });
+    if (error) showNotification("Gagal Pin: " + error.message);
+    else { showNotification("Status Pin diupdate!"); openAdminPanel('posts'); loadFeed(); }
+}
+
+// Tambahin parameter postId biar bisa auto-refresh UI
+async function likeComment(commentId, btn) {
+    if (!User) return showNotification("Login dlu bray!");
+    
+    const svg = btn.querySelector('svg');
+    const span = btn.querySelector('span');
+    const isLiked = svg.getAttribute('fill') === '#ff0000';
+
+    if (isLiked) {
+        // --- PROSES UNLIKE ---
+        const { error } = await supabaseClient
+            .from('comment_likes')
+            .delete()
+            .eq('comment_id', commentId)
+            .eq('user_id', User.id);
+        
+        if (!error) {
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            let val = parseInt(span.innerText);
+            span.innerText = (val - 1 <= 0) ? 'Like' : val - 1;
+        }
+    } else {
+        // --- PROSES LIKE ---
+        // Kita insert, kalau database nemu duplikat karena constraint di atas, dia bakal error
+        const { error } = await supabaseClient
+            .from('comment_likes')
+            .insert([{ comment_id: commentId, user_id: User.id }]);
+        
+        if (!error) {
+            svg.setAttribute('fill', '#ff0000');
+            svg.setAttribute('stroke', '#ff0000');
+            let val = parseInt(span.innerText) || 0;
+            span.innerText = val + 1;
+        } else {
+            console.error("Gagal karena duplikat:", error);
+        }
+    }
+}
+
+// Fitur Reply (Fokus ke input)
+function setReply(username, postId) {
+    const input = document.getElementById(`comment-input-${postId}`);
+    if (input) {
+        input.value = `@${username} `;
+        input.focus();
+    }
+}
+
+function setupLikeListeners(postId) {
+    const list = document.getElementById(`comments-list-${postId}`);
+    if (!list) return;
+
+    list.querySelectorAll('.btn-like-comment').forEach(btn => {
+        btn.onclick = async () => {
+            const commentId = btn.getAttribute('data-comment-id');
+            await likeComment(commentId, btn);
+        };
+    });
+}
+
+async function processMentions(usernames, postId) {
+    for (const username of usernames) {
+        // Cari ID user berdasarkan username
+        const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('id, username')
+            .eq('username', username)
+            .maybeSingle();
+
+        if (profile && profile.id !== User.id) {
+            // Panggil notif UI
+            showNotification(`@${profile.username} berhasil di-mention!`);
+
+            // (OPSIONAL) Kalau lo punya tabel 'notifications' di Supabase, insert di sini:
+            /*
+            await supabaseClient.from('notifications').insert([{
+                user_id: profile.id, // User yang ditag
+                sender_id: User.id,
+                post_id: postId,
+                message: `${userProfile.username} menyebut Anda dalam komentar.`
+            }]);
+            */
+        }
+    }
 }
