@@ -1205,3 +1205,114 @@ body {
         font-size: 0.8rem;
     }
 }
+
+/* --- Reset --- */
+* { box-sizing: border-box; }
+body { margin: 0; padding-bottom: 60px; } /* Jarak buat bottom-nav di HP */
+
+/* --- Mobile First (Default) --- */
+.nav-wrapper {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #121212; /* Sesuaikan warna background lu */
+    border-top: 1px solid #333;
+    z-index: 1000;
+}
+
+/* Hide Header & Auth di Mobile */
+.nav-header, .nav-auth { display: none; }
+
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.nav-item.active { color: #55ff55; } /* Warna hijau aktif */
+
+/* --- Desktop (Sidebar) --- */
+@media (min-width: 768px) {
+    body { padding-bottom: 0; padding-left: 250px; } /* Kasih ruang di kiri */
+
+    .nav-wrapper {
+        width: 250px;
+        height: 100vh;
+        border-top: none;
+        border-right: 1px solid #333;
+        transition: width 0.3s;
+    }
+
+    /* Munculin Header & Auth di Desktop */
+    .nav-header, .nav-auth { display: block; padding: 20px; }
+
+    .bottom-nav {
+        flex-direction: column; /* Ubah ke kolom */
+        padding: 0;
+        justify-content: flex-start;
+    }
+
+    .nav-item {
+        flex-direction: row; /* Teks di samping ikon */
+        padding: 15px 20px;
+        gap: 15px;
+        justify-content: flex-start;
+    }
+
+    /* Tombol Toggle Sidebar */
+    .sidebar-toggle-btn {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 20px;
+    }
+}
+
+@media (min-width: 768px) {
+    /* Container utama (Sidebar) */
+    .nav-wrapper {
+        display: flex;
+        flex-direction: column; /* INI KUNCINYA: Biar numpuk ke bawah */
+        align-items: flex-start; /* INI KUNCINYA: Biar semua rata kiri */
+        width: 250px;
+        height: 100vh;
+        position: fixed;
+        left: 0;
+        top: 0;
+        background: #121212;
+        border-right: 1px solid #333;
+        padding: 20px;
+        gap: 20px; /* Jarak antar section (Logo, Profile, Nav) */
+    }
+
+    /* Pastikan tiap section makan lebar penuh biar align-nya bener */
+    .nav-header, 
+    .nav-auth, 
+    .bottom-nav {
+        width: 100%; /* Biar elemen di dalamnya bisa rata kiri */
+    }
+
+    /* Biar Nav item list-nya vertikal */
+    .bottom-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 10px; /* Jarak antar tombol nav */
+    }
+
+    .nav-item {
+        flex-direction: row; /* Ikon dan Teks sejajar horizontal */
+        justify-content: flex-start; /* Rata kiri */
+        padding: 10px;
+    }
+}
