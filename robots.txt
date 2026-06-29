@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://felix-mods.my.id/sitemap.xml
