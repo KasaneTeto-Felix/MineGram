@@ -546,6 +546,9 @@ function closeEditProfile() {
 async function saveProfile() {
     const username = document.getElementById('edit-username').value.trim();
     const btnSave = document.querySelector('.btn-save');
+
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+
     if (btnSave) {
         btnSave.disabled = true; 
         btnSave.textContent = "Menyimpan...";
@@ -561,13 +564,13 @@ async function saveProfile() {
 }
 
     try {
-        // 1. Update ke Supabase
+        // Update ke Supabase
         const { error } = await supabaseClient
             .from('profiles')
             .update({
-                username: document.getElementById('edit-username').value,
-                minecraft_username: document.getElementById('edit-mc-username').value,
-                bio: document.getElementById('edit-bio').value,
+                username: username, // Pakai variabel yang sudah di-trim
+                minecraft_username: document.getElementById('edit-mc-username').value.trim(),
+                bio: document.getElementById('edit-bio').value.trim(),
                 avatar_url: document.getElementById('profile-preview').src,
                 updated_at: new Date().toISOString()
             })
@@ -575,25 +578,30 @@ async function saveProfile() {
 
         if (error) throw error;
 
-        // 2. Update data lokal agar UI berubah
+        // Update data lokal agar UI berubah
         userProfile = {
             ...userProfile,
-            username: document.getElementById('edit-username').value,
-            minecraft_username: document.getElementById('edit-mc-username').value,
-            bio: document.getElementById('edit-bio').value,
+            username: username,
+            minecraft_username: document.getElementById('edit-mc-username').value.trim(),
+            bio: document.getElementById('edit-bio').value.trim(),
             avatar_url: document.getElementById('profile-preview').src
         };
         
+        // Panggil update UI header biar avatar/nama langsung berubah tanpa refresh
+        if (typeof updateAuthUI === 'function') updateAuthUI(true);
+        
         showNotification("Profil berhasil diperbarui!");
         resetNav();
-        // Tutup modal setelah sukses
         document.getElementById('profile-modal').style.display = 'none';
         
     } catch (err) {
+        console.error("Save Error:", err);
         showNotification("Gagal: " + err.message);
+    } finally {
+        // 3. APAPUN YANG TERJADI, tombol harus kembali normal
         if (btnSave) {
             btnSave.disabled = false; 
-            btnSave.textContent = "Selesai";
+            btnSave.textContent = "Simpan"; // Atau sesuaikan dengan teks awalmu
         }
     }
 }
@@ -634,24 +642,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Handle Crop
 async function cropAndUpload() {
-    // Gunakan window.cropperInstance biar sinkron sama yang diinisialisasi
     const activeCropper = window.cropperInstance;
     
-    if (!Cropper) {
+    if (!Cropper || !activeCropper) {
         console.error("Gagal save: Cropper instance tidak ditemukan!");
         showNotification("Gagal: Cropper belum aktif.");
         return;
     }
 
     console.log("Memulai proses crop & upload...");
+    
+    // 1. MUNCULKAN LOADING OVERLAY BIAR USER GAK BINGUNG
+    showLoading(); 
 
-    activeCropper.getCroppedCanvas().toBlob(async (blob) => {
+    // 2. KECILKAN RESOLUSI HASIL CROP (Avatar cukup 512x512 max)
+    activeCropper.getCroppedCanvas({
+        width: 512,
+        height: 512
+    }).toBlob(async (blob) => {
         if (!blob) {
             console.error("Gagal buat blob!");
+            hideLoading(); // Matikan loading jika error
             return;
         }
 
-        const fileName = `${User.id}.png`;
+        const fileName = `${User.id}.jpg`; // Ubah ekstensi ke .jpg biar sesuai format kompresi
         
         // Upload ke Supabase
         const { error } = await supabaseClient.storage
@@ -660,27 +675,35 @@ async function cropAndUpload() {
               cacheControl: '3600',
               upsert: true
             });
+            
         if (error) {
             console.error("Error upload:", error);
             showNotification("Gagal upload: " + error.message);
+            hideLoading(); // Matikan loading jika error
             return;
         }
         
-        // Ambil URL publik
+        // Ambil URL publik beserta Cache Buster (solusi sebelumnya)
         const { data } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+        const timestamp = new Date().getTime();
+        const newAvatarUrl = `${data.publicUrl}?t=${timestamp}`;
         
         // Update UI
-        document.getElementById('profile-preview').src = data.publicUrl;
+        document.getElementById('profile-preview').src = newAvatarUrl;
         
         // Tutup modal dan munculin balik profile-modal
         document.getElementById('cropper-modal').style.display = 'none';
         document.getElementById('profile-modal').style.display = 'flex';
         
         // Cleanup
-        Cropper.destroy();
+        activeCropper.destroy();
         window.cropperInstance = null;
         console.log("Sukses update avatar!");
-    });
+        
+        // 3. MATIKAN LOADING OVERLAY SETELAH BERHASIL
+        hideLoading(); 
+        
+    }, 'image/jpeg', 0.7); // 4. KOMPRESI: Ubah ke format JPEG dengan kualitas 70% (0.7)
 }
 
 let isNotificationActive = false; // Flag penanda status
