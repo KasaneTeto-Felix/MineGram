@@ -288,10 +288,10 @@ async function loadFeed() {
         .from('posts')
         .select(`
             id, created_at, content, image_url, is_pinned,
-           profiles!posts_user_id_fkey (username, avatar_url, is_verified)
+            profiles!posts_user_id_fkey (username, avatar_url, is_verified)
         `)
-        .order('is_pinned', { ascending: false, nullsFirst: false }) // <--- BIAR PIN SELALU DI ATAS
-        .order('created_at', { ascending: false });
+        .order('is_pinned', { ascending: false }) // Pin selalu paling atas
+        .order('created_at', { ascending: false })
      // query = query.order('created_at', { ascending: false });
       // query = query.limit(6);
 
@@ -303,6 +303,10 @@ async function loadFeed() {
         return;
     }
 
+    posts = (posts || []).sort((a, b) => {
+        if (a.is_pinned !== b.is_pinned) return b.is_pinned - a.is_pinned;
+        return (b.likes?.length || 0) - (a.likes?.length || 0);
+    });
     // Pakai (posts || []) biar kalau null dia jadi array kosong []
     posts = (posts || []).slice(0, 6);
 
@@ -425,7 +429,7 @@ async function loadComments(postId) {
     const { data: comments, error } = await supabaseClient
         .from('comments')
         .select(`
-            id, content, 
+            id, user_id, content, 
             profiles (username, avatar_url, minecraft_username, is_verified)
         `)
         .eq('post_id', postId)
@@ -464,7 +468,7 @@ async function loadComments(postId) {
             
             return `
             <div style="margin:10px 0; display:flex; align-items:flex-start; gap:10px;">
-                <img src="${avatarSrc}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #444;">
+                <img src="${avatarSrc}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #444; cursor:pointer;" onclick="openUserProfile('${c.user_id}')">
                 <div style="display:flex; flex-direction:column;">
                     <b style="color:#55ff55; font-size:0.85rem;">${c.profiles?.username || 'Gamer'} ${badge}</b>
                     <span style="color:#ddd; font-size:0.85rem; word-break:break-word;">${escapeHTML(c.content)}</span>
@@ -997,4 +1001,130 @@ async function processMentions(usernames, postId) {
             */
         }
     }
+}
+
+// ====================================================
+// FITUR LIHAT PROFIL ORANG LAIN
+// ====================================================
+
+async function openUserProfile(targetUserId) {
+    if (!targetUserId) return;
+    
+    // Kalau klik profil sendiri, arahkan ke edit profil (atau bisa di-return aja)
+    if (User && targetUserId === User.id) {
+        openEditProfile();
+        return;
+    }
+
+    showLoading();
+
+    try {
+        // 1. Fetch data profil user target
+        const { data: profile, error: profErr } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', targetUserId)
+            .single();
+
+        if (profErr) throw profErr;
+
+        // 2. Fetch semua postingan user ini untuk dihitung dan ditampilin di grid
+        const { data: posts, error: postErr } = await supabaseClient
+            .from('posts')
+            .select('id, image_url, content')
+            .eq('user_id', targetUserId)
+            .order('created_at', { ascending: false });
+
+        if (postErr) throw postErr;
+
+        // 3. Masukkan data ke UI Modal
+        document.getElementById('oup-username').textContent = profile.username || 'Gamer';
+        
+        const badge = profile.is_verified ? `<img src="verified.png" style="width:16px; height:16px; margin-left:5px; vertical-align:middle;" alt="Verified">` : '';
+        document.getElementById('oup-fullname').innerHTML = `${profile.minecraft_username || 'Steve'} ${badge}`;
+        
+        document.getElementById('oup-bio').textContent = profile.bio || '';
+        document.getElementById('oup-avatar').src = profile.avatar_url || `https://minotar.net/helm/${profile.minecraft_username || 'Steve'}/100.png`;
+        document.getElementById('oup-post-count').textContent = posts ? posts.length : 0;
+
+        // 4. Render Grid Postingan
+        const grid = document.getElementById('oup-posts-grid');
+        grid.innerHTML = ''; // Bersihkan grid
+
+
+        if (posts && posts.length > 0) {
+            posts.forEach(p => {
+                const cell = document.createElement('div');
+                cell.style.aspectRatio = '1 / 1';
+                cell.style.backgroundColor = '#1c2125';
+                cell.style.display = 'flex';
+                cell.style.alignItems = 'center';
+                cell.style.justifyContent = 'center';
+                cell.style.overflow = 'hidden';
+                cell.style.border = '1px solid #282c31';
+                if (p.image_url) {
+                    // Kalau ada gambar, tampilin full
+                    cell.innerHTML = `<img src="${p.image_url}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                } else {
+                    // Kalau cuma teks, tampilin cuplikan teksnya
+                    cell.style.padding = '5px';
+                    cell.style.fontSize = '0.7rem';
+                    cell.style.color = '#777';
+                    cell.innerText = p.content.substring(0, 20) + '...';
+                    cell.innerHTML = `<span style="padding: 10px; font-size: 0.75rem; color: #888; text-align: center; word-break: break-word;">${escapeHTML(p.content.substring(0, 40))}...</span>`;
+                }
+                grid.appendChild(cell);
+            }, 300);
+        } else {
+            grid.innerHTML = `<div style="grid-column: span 3; text-align: center; padding: 30px; color: #666;">Belum ada postingan.</div>`;
+        }
+
+        // Tampilkan Modal
+        document.getElementById('other-user-profile-modal').style.display = 'flex';
+        
+    } catch (err) {
+        console.error("Gagal load profil:", err);
+        showNotification("Gagal memuat profil user!");
+    } finally {
+        hideLoading();
+    }
+}
+
+function closeUserProfile() {
+    document.getElementById('other-user-profile-modal').style.display = 'none';
+}
+
+// Buka modal detail post
+async function openPostDetail(postId) {
+    const modal = document.getElementById('post-detail-modal');
+    const contentDiv = document.getElementById('post-detail-content');
+    
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
+    contentDiv.innerHTML = "Memuat postingan...";
+
+    // Fetch data spesifik post tersebut
+    const { data: post, error } = await supabaseClient
+        .from('posts')
+        .select('*, profiles(username, avatar_url)')
+        .eq('id', postId)
+        .single();
+
+    if (error || !post) {
+        contentDiv.innerHTML = "Post tidak ditemukan.";
+        return;
+    }
+
+    // Render isi post
+    contentDiv.innerHTML = `
+        <h3>${post.profiles.username}</h3>
+        <p>${escapeHTML(post.content)}</p>
+        ${post.image_url ? `<img src="${post.image_url}" style="width:100%;">` : ''}
+    `;
+}
+
+// Tutup modal
+function closePostDetail() {
+    document.getElementById('post-detail-modal').style.display = 'none';
 }
