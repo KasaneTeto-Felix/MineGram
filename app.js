@@ -416,7 +416,7 @@ async function loadFeed() {
         return (b.likes?.length || 0) - (a.likes?.length || 0);
     });
     // Pakai (posts || []) biar kalau null dia jadi array kosong []
-    posts = (posts || []).slice(0, 6);
+   // posts = (posts || []).slice(0, 6);
 
     // 3. Bersihkan container setelah data sukses di-load
     feedContainer.innerHTML = '';
