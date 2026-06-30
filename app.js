@@ -195,6 +195,35 @@ btnCloseModal.addEventListener('click', () => {
     resetNav(); // <--- TAMBAHIN INI: Biar nav balik ke Home pas modal ditutup
 });
 
+// ====================================================
+// FITUR LOGIN/REGISTER OTOMATIS VIA GOOGLE
+// ====================================================
+async function loginWithGoogle() {
+    showLoading(); // Panggil overlay loading lu biar keren
+    
+    // URL buat balikin user ke app setelah sukses login dari Google.
+    // Catatan: Kalau web biasa pakai window.location.origin. 
+    // Kalau APK Android Acode, ganti ke custom URL scheme lu (misal: "minegrams://auth-callback")
+    const redirectUrl = window.location.origin; 
+
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: redirectUrl,
+            queryParams: {
+                access_type: 'offline',
+                prompt: 'select_account' // Maksa pop-up Google buat milih akun
+            }
+        }
+    });
+
+    // Cek error aja, karena kalau sukses halaman bakal otomatis me-refresh (redirect)
+    if (error) {
+        hideLoading();
+        showNotification("Gagal masuk via Google: " + error.message, "error");
+    }
+}
+
 function switchAuthMode() {
     modalTitle.textContent = isLoginMode ? "Minecraft Sign In" : "Create New Player";
     registerFields.style.display = isLoginMode ? "none" : "block";
@@ -224,11 +253,49 @@ async function checkUserSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         User = session.user;
-        const { data: profile } = await supabaseClient
+        
+        // Gunakan maybeSingle() supaya tidak melempar error kalau profil belum terbuat
+        let { data: profile } = await supabaseClient
             .from('profiles')
             .select('*')
             .eq('id', User.id)
-            .single();
+            .maybeSingle();
+
+        // 🎯 JALUR OTOMATIS GOOGLE: Jika profil belum ada ATAU minecraft_username masih default/kosong
+        if (!profile || !profile.minecraft_username || profile.minecraft_username === 'Steve') {
+            
+            // Ambil nama dari Google metadata, ganti spasi dengan underscore, batasi max 15 karakter sesuai rule lu!
+            const googleName = User.user_metadata?.full_name || User.user_metadata?.name || "Player";
+            const cleanName = googleName.replace(/\s+/g, '_').substring(0, 15);
+
+            if (!profile) {
+                // Skenario A: Jika baris profil di database bener-bener belum kebuat sama sekali
+                const { data: newProfile, error: insertErr } = await supabaseClient
+                    .from('profiles')
+                    .insert([{
+                        id: User.id,
+                        username: cleanName,
+                        minecraft_username: cleanName, // GAS! Dibikin sama rata bray
+                        avatar_url: User.user_metadata?.avatar_url || `https://minotar.net/helm/${cleanName}/100.png`
+                    }])
+                    .select()
+                    .single();
+                
+                if (!insertErr) profile = newProfile;
+            } else {
+                // Skenario B: Profil udah ada (mungkin trigger DB) tapi mc_username belum disamakan
+                const targetName = profile.username || cleanName;
+                const { data: updatedProfile, error: updateErr } = await supabaseClient
+                    .from('profiles')
+                    .update({ minecraft_username: targetName }) // Samakan dengan username yang aktif
+                    .eq('id', User.id)
+                    .select()
+                    .single();
+                
+                if (!updateErr) profile = updatedProfile;
+            }
+        }
+
         userProfile = profile;
         updateAuthUI(true);
         setupAdminNav();
@@ -587,19 +654,20 @@ async function saveProfile() {
 
     const usernameRegex = /^[a-zA-Z0-9_]+$/;
 
-    if (btnSave) {
-        btnSave.disabled = true; 
-        btnSave.textContent = "Menyimpan...";
-    }
+    
 
     if (username.length > 15) {
         showNotification("Username kepanjangan bray! Max 15 karakter.");
-        return;
     }
 
     if (!usernameRegex.test(username)) {
     return showNotification("Username cuma boleh huruf, angka, & underscore!");
 }
+
+    if (btnSave) {
+        btnSave.disabled = true; 
+        btnSave.textContent = "Menyimpan...";
+    }
 
     try {
         // Update ke Supabase
@@ -1146,7 +1214,7 @@ async function openUserProfile(targetUserId) {
                     cell.innerHTML = `<span style="padding: 10px; font-size: 0.75rem; color: #888; text-align: center; word-break: break-word;">${escapeHTML(p.content.substring(0, 40))}...</span>`;
                 }
                 grid.appendChild(cell);
-            }, 300);
+            });
         } else {
             grid.innerHTML = `<div style="grid-column: span 3; text-align: center; padding: 30px; color: #666;">Belum ada postingan.</div>`;
         }
