@@ -64,6 +64,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // ==========================================
+    // TAMBAHAN: DRAG & DROP CREATE POST (NON-ANDROID)
+    // ==========================================
+    const isAndroidDevice = /Android/i.test(navigator.userAgent);
+    if (!isAndroidDevice && postModal) {
+        // Mencegah browser membuka gambar secara default saat di-drag
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            postModal.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        // Efek visual pas file ditahan di atas modal
+        ['dragenter', 'dragover'].forEach(eventName => {
+            postModal.addEventListener(eventName, () => postModal.classList.add('drag-over'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            postModal.addEventListener(eventName, () => postModal.classList.remove('drag-over'), false);
+        });
+
+        // Handle file pas dilepas (drop)
+        postModal.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                postImageInput.files = files; // Set file ke input file HTML
+                postImageInput.dispatchEvent(new Event('change')); // Triger biar teks nama file berubah
+            } else {
+                showNotification("Cuma bisa drop file gambar bray!", "error");
+            }
+        });
+    }
+
     // 2. Sekarang baru jalankan logic loading & fetch
     // (Ini dipisah supaya tidak tersangkut di dalam event listener di atas)
     showLoading();
@@ -610,25 +644,26 @@ async function saveProfile() {
     }
 }
 
-// Handle Upload File
+// ====================================================
+// HANDLE UPLOAD FILE & DRAG DROP EDIT PROFILE (KODE BARU)
+// ====================================================
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-input');
     
     if (!fileInput) return;
 
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
+    // 1. Ini fungsi pembantu (handleProfileFile) yang gua maksud. 
+    // Sekarang posisinya ada di DALAM DOMContentLoaded agar rapi.
+    function handleProfileFile(file) {
         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = (event) => {
             const modal = document.getElementById('cropper-modal');
             const img = document.getElementById('image-to-crop');
-            // FIX: Deklarasikan elemennya di sini
             const profileModal = document.getElementById('profile-modal'); 
 
             if (modal && img) {
-                // Sembunyiin profil biar gak numpuk
                 if (profileModal) profileModal.style.display = 'none'; 
                 
                 modal.style.display = 'flex';
@@ -641,8 +676,45 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         reader.readAsDataURL(file);
+    }
+
+    // 2. Klik manual (untuk HP & Desktop) tinggal panggil fungsi di atas
+    fileInput.addEventListener('change', (e) => {
+        handleProfileFile(e.target.files[0]);
     });
-});
+
+    // 3. Logika Drag & Drop (Khusus PC/Desktop, Android gak bakal nge-trigger ini)
+    const isAndroidDevice = /Android/i.test(navigator.userAgent);
+    if (!isAndroidDevice) {
+        const profileModal = document.getElementById('profile-modal');
+        if (profileModal) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                profileModal.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                profileModal.addEventListener(eventName, () => profileModal.classList.add('drag-over'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                profileModal.addEventListener(eventName, () => profileModal.classList.remove('drag-over'), false);
+            });
+
+            profileModal.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type.startsWith('image/')) {
+                    // Tinggal panggil fungsi pembantu yang sama bray!
+                    handleProfileFile(files[0]);
+                } else {
+                    showNotification("File harus berupa gambar!", "error");
+                }
+            });
+        }
+    }
+}); 
 
 // Handle Crop
 async function cropAndUpload() {
