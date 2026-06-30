@@ -43,26 +43,34 @@ function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
 }
 
-/// Pastikan bagian ini ada di app.js lu
+// ==========================================
+// FIX DOMCONTENTLOADED SECTION (CLEAN VERSION)
+// ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
     const btnSubmitPost = document.getElementById('btn-submit-post');
     if (btnSubmitPost) {
         btnSubmitPost.addEventListener('click', handleCreatePost);
     }
-    // 1. Pasang semua Event Listener terlebih dahulu
-    btnClosePost.addEventListener('click', () => {
-        postModal.style.display = 'none';
-        resetNav(); // Reset nav ke home
-    });
 
-    postImageInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            fileNamePreview.textContent = file.name; 
-        } else {
-            fileNamePreview.textContent = "No file";
-        }
-    });
+    // 1. Pasang semua Event Listener terlebih dahulu
+    if (btnClosePost) {
+        btnClosePost.addEventListener('click', () => { 
+            postModal.style.display = 'none'; 
+            resetNav(); 
+        });
+    }
+
+    // --- FIX DI SINI: Dijadiin satu & ditutup dengan aman ---
+    if (postImageInput) {
+        postImageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fileNamePreview.textContent = file.name; 
+            } else {
+                fileNamePreview.textContent = "No file";
+            }
+        });
+    } // <-- Kurung penutup 'if' yang hilang udah balik bray!
 
     // ==========================================
     // TAMBAHAN: DRAG & DROP CREATE POST (NON-ANDROID)
@@ -99,7 +107,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 2. Sekarang baru jalankan logic loading & fetch
-    // (Ini dipisah supaya tidak tersangkut di dalam event listener di atas)
     showLoading();
 
     try {
